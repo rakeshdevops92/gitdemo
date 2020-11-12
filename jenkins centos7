@@ -1,0 +1,13 @@
+Install java-1.8.0-openjdk-devel
+1.	Install Java:
+sudo yum install -y java-1.8.0-openjdk-devel
+check_circleInstall the Repo and Key, and Then Install Jenkins
+1.	Install wget:
+sudo yum install -y wget
+2.	Download the repo:
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat/jenkins.repo
+3.	Import the required key:
+sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io.key
+4.	Install Jenkins:
+sudo yum install -y jenkins
+
