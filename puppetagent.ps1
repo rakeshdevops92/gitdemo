@@ -1,0 +1,1 @@
+[System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; [Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; $webClient = New-Object System.Net.WebClient; $webClient.DownloadFile('https://4460014caf1c.mylabserver.com:8140/packages/current/install.ps1', 'install.ps1'); .\install.ps1 -v
