@@ -1,13 +1,24 @@
 pipeline {
     agent any
     stages {
-        stage('Build') {
-            steps {
-                // Get some code from a GitHub repository
-                git 'https://github.com/rakeshdevops92/gitdemo.git'
+        stage('setup kubeconfig') {
+          steps {
+            withCredentials([file(credentialsId: 'eks', variable: 'cd_config')]) {
+                sh "sudo cp \${cd_config} ${WORKSPACE}/cd_config"
             }
-
-            
+          }
+        }
+        stage('deploy') {
+          steps {
+             sh '''
+                sudo kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
+                '''
+          }            
+        }
+        stage('remove kubeconfig file') {
+            steps {
+                    sh "sudo rm -rf ${WORKSPACE}/cd_config"
+            }
         }
     }
 }
