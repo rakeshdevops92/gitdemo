@@ -10,12 +10,11 @@ pipeline {
         }
         stage('deploy') {
           steps {
-            withCredentials([[
-              $class: 'AmazonWebServicesCredentialsBinding',
+            withCredentials([aws(
               credentialsId: "aws",
               accessKeyVariable: 'AWS_ACCESS_KEY_ID',
               secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-            ]]) 
+            )]) 
             {
               // AWS Code
               sh '''
