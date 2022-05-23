@@ -10,9 +10,19 @@ pipeline {
         }
         stage('deploy') {
           steps {
-             sh '''
+            withCredentials([[
+              $class: 'AmazonWebServicesCredentialsBinding',
+              credentialsId: "aws",
+              accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+              secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+            ]]) 
+            {
+              // AWS Code
+              sh '''
                 sudo kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
                 '''
+            }
+             
           }            
         }
         stage('remove kubeconfig file') {
