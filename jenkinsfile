@@ -18,6 +18,7 @@ pipeline {
             {
               // AWS Code
               sh '''
+                aws ec2 describe-instances
                 sudo kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
                 '''
             }
