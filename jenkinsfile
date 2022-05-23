@@ -18,8 +18,9 @@ pipeline {
             {
               // AWS Code
               sh '''
+                aws sts get-caller-identity
                 aws ec2 describe-instances
-                kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
+                sudo kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
                 '''
             }
              
