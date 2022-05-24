@@ -11,7 +11,7 @@ pipeline {
         stage('deploy') {
           steps {
             withCredentials([aws(
-              credentialsId: "aws",
+              credentialsId: "aws-rakesh",
               accessKeyVariable: 'AWS_ACCESS_KEY_ID',
               secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
             )]) 
