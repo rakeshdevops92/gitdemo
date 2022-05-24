@@ -1,4 +1,3 @@
-$HOME/.kube/config
 pipeline {
     agent any
     environment {
