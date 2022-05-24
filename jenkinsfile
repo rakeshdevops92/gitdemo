@@ -4,14 +4,13 @@ pipeline {
         KUBECONFIG  = "${WORKSPACE}/.kube/config"
     }
     stages {
-        stage('setup kubeconfig') {
+        stage('Checkout') {
           steps {
-            withCredentials([file(credentialsId: 'eks', variable: 'cd_config')]) {
-                sh "sudo cp \${cd_config} ${WORKSPACE}"
-            }
+            echo "Cloning repository"
+            checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/rakeshdevops92/k8s-helm-helmfile.git']]])
           }
         }
-        stage('deploy') {
+        stage('deploy helmfile') {
           steps {
             withCredentials([aws(
               credentialsId: "aws-rakesh",
@@ -25,6 +24,8 @@ pipeline {
                 aws ec2 describe-instances
                 aws eks --region us-west-2 update-kubeconfig --name my-cluster
                 kubectl get nodes
+                cd helmfile
+                helmfile sync
                 '''
             }
              
@@ -32,8 +33,8 @@ pipeline {
         }
         stage('remove kubeconfig file') {
             steps {
-                    sh "sudo rm -rf ${WORKSPACE}/cd_config"
+                    sh "sudo rm -rf ${KUBECONFIG}"
             }
-        }
+        }        
     }
 }
