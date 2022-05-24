@@ -1,5 +1,9 @@
+$HOME/.kube/config
 pipeline {
     agent any
+    environment {
+        KUBECONFIG  = "${WORKSPACE}/.kube/config"
+    }
     stages {
         stage('setup kubeconfig') {
           steps {
@@ -20,8 +24,8 @@ pipeline {
               sh '''
                 aws sts get-caller-identity
                 aws ec2 describe-instances
-                sudo aws eks --region us-west-2 update-kubeconfig --name my-cluster
-                sudo kubectl get nodes
+                aws eks --region us-west-2 update-kubeconfig --name my-cluster
+                kubectl get nodes
                 '''
             }
              
