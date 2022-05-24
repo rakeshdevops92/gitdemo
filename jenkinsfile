@@ -20,7 +20,8 @@ pipeline {
               sh '''
                 aws sts get-caller-identity
                 aws ec2 describe-instances
-                sudo kubectl get nodes --kubeconfig ${WORKSPACE}/cd_config
+                aws eks --region us-west-2 update-kubeconfig --name my-cluster_name
+                sudo kubectl get nodes
                 '''
             }
              
