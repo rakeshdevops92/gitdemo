@@ -1,0 +1,55 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: svn-clone-pipeline
+spec:
+  tasks:
+  - name: get-secrets
+    taskSpec:
+      steps:
+      - name: get-username
+        image: quay.io/openshift/origin-cli:latest
+        command: ["/bin/sh"]
+        args: ["-c", "oc get secret <SECRET_NAME> -o jsonpath='{.data.username}' | base64 -d > /workspace/svn-username"]
+        volumeMounts:
+        - name: workspace
+          mountPath: /workspace
+        env:
+        - name: HOME
+          value: /workspace
+      - name: get-password
+        image: quay.io/openshift/origin-cli:latest
+        command: ["/bin/sh"]
+        args: ["-c", "oc get secret <SECRET_NAME> -o jsonpath='{.data.password}' | base64 -d > /workspace/svn-password"]
+        volumeMounts:
+        - name: workspace
+          mountPath: /workspace
+        env:
+        - name: HOME
+          value: /workspace
+      volumes:
+      - name: workspace
+        emptyDir: {}
+    workspaces:
+    - name: workspace
+      workspace: workspace
+  - name: svn-clone-task
+    taskRef:
+      name: svn-clone-task
+    params:
+    - name: svn-username
+      valueFrom:
+        secretKeyRef:
+          name: svn-credentials
+          key: svn-username
+    - name: svn-password
+      valueFrom:
+        secretKeyRef:
+          name: svn-credentials
+          key: svn-password
+    workspaces:
+    - name: workspace
+      workspace: workspace
+  workspaces:
+  - name: workspace
+    emptyDir: {}
