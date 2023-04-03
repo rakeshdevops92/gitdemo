@@ -6,16 +6,8 @@ spec:
   params:
   - name: svn-username
     type: string
-    valueFrom:
-      secretKeyRef:
-        name: svn-credentials
-        key: username
   - name: svn-password
     type: string
-    valueFrom:
-      secretKeyRef:
-        name: svn-credentials
-        key: password
   steps:
   - name: clone-code
     image: alpine/git
