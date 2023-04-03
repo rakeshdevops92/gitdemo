@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: svn-clone-task
+spec:
+  params:
+  - name: svn-username
+    type: string
+    valueFrom:
+      secretKeyRef:
+        name: svn-credentials
+        key: username
+  - name: svn-password
+    type: string
+    valueFrom:
+      secretKeyRef:
+        name: svn-credentials
+        key: password
+  steps:
+  - name: clone-code
+    image: alpine/git
+    command:
+    - sh
+    - -c
+    args:
+    - svn checkout --username $(params.svn-username) --password $(params.svn-password) <SVN_URL> /workspace/source-code
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    env:
+    - name: HOME
+      value: /workspace
+  volumes:
+  - name: workspace
+    emptyDir: {}
