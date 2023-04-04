@@ -1,23 +1,22 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: svn-clone
+  name: svn-checkout
 spec:
-  inputs:
-    params:
-      - name: url
-        description: The URL of the SVN repository to clone
-        type: string
-      - name: revision
-        description: The revision of the SVN repository to clone
-        type: string
-    resources:
-      - name: workspace
-        type: workspace
-      - name: svn-secret
-        type: secret
+  params:
+    - name: url
+      description: The URL of the SVN repository to checkout
+      type: string
+    - name: revision
+      description: The revision of the SVN repository to checkout
+      type: string
+  resources:
+    - name: workspace
+      type: workspace
+    - name: svn-secret
+      type: secret
   steps:
-    - name: svn-clone
+    - name: svn-checkout
       image: subversion
       env:
         - name: SVN_USERNAME
@@ -30,46 +29,16 @@ spec:
             secretKeyRef:
               name: svn-secret
               key: password
+        - name: SVN_URL
+          value: $(params.url)
+        - name: SVN_REVISION
+          value: $(params.revision)
       command:
         - sh
         - -c
         - |
           svn checkout --username "${SVN_USERNAME}" --password "${SVN_PASSWORD}" \
-            --revision "${inputs.params.revision}" "${inputs.params.url}" "${resources.workspace.path}/repo"
+            --revision "${SVN_REVISION}" "${SVN_URL}" "${resources.workspace.path}/repo"
       volumeMounts:
         - name: workspace
           mountPath: /workspace
-    - name: task-success
-      image: alpine
-      command: ["/bin/sh"]
-      args: ["-c", "echo 'Task completed successfully!'"]
-
----
-
-apiVersion: tekton.dev/v1beta1
-kind: Pipeline
-metadata:
-  name: svn-pipeline
-spec:
-  params:
-    - name: url
-      description: The URL of the SVN repository to clone
-      type: string
-    - name: revision
-      description: The revision of the SVN repository to clone
-      type: string
-  tasks:
-    - name: svn-clone
-      taskRef:
-        name: svn-clone
-      params:
-        - name: url
-          value: $(params.url)
-        - name: revision
-          value: $(params.revision)
-      resources:
-        inputs:
-          - name: workspace
-            resource: workspace
-          - name: svn-secret
-            resource: secret
