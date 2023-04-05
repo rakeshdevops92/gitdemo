@@ -5,40 +5,22 @@ metadata:
 spec:
   params:
     - name: url
-      description: The URL of the SVN repository to checkout
       type: string
-    - name: revision
-      description: The revision of the SVN repository to checkout
+    - name: username
       type: string
-  resources:
-    - name: workspace
-      type: workspace
-    - name: svn-secret
-      type: secret
+    - name: password
+      type: string
   steps:
-    - name: svn-checkout
-      image: subversion
-      env:
-        - name: SVN_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: svn-secret
-              key: username
-        - name: SVN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: svn-secret
-              key: password
-        - name: SVN_URL
-          value: $(params.url)
-        - name: SVN_REVISION
-          value: $(params.revision)
+    - name: checkout
+      image: alpine/svn
       command:
         - sh
         - -c
         - |
-          svn checkout --username "${SVN_USERNAME}" --password "${SVN_PASSWORD}" \
-            --revision "${SVN_REVISION}" "${SVN_URL}" "${resources.workspace.path}/repo"
+          svn checkout --username $(inputs.params.username) --password $(inputs.params.password) $(inputs.params.url) /workspace/checkout
       volumeMounts:
         - name: workspace
           mountPath: /workspace
+  volumes:
+    - name: workspace
+      emptyDir: {}
