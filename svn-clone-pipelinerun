@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: svn-pipeline-run
+spec:
+  params:
+    - name: url
+      value: "http://svn.example.com/repo/trunk"
+    - name: username
+      valueFrom:
+        secretKeyRef:
+          name: svn-creds
+          key: username
+    - name: password
+      valueFrom:
+        secretKeyRef:
+          name: svn-creds
+          key: password
+  pipelineRef:
+    name: svn-pipeline
