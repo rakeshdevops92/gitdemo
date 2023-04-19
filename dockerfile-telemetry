@@ -1,0 +1,11 @@
+# Start with a base image that has Java 17 installed
+FROM adoptopenjdk
+
+# Create a working directory for the application
+WORKDIR /app
+
+# Copy the JAR file and any dependencies to the working directory
+COPY demo-0.0.1-SNAPSHOT.jar .
+
+# Set the entry point for the container
+ENTRYPOINT ["java", "-jar", "demo-0.0.1-SNAPSHOT.jar"]
