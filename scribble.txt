@@ -1,1 +1,10 @@
 Get-AzQuota -Scope "subscriptions/my-sub/providers/Microsoft.Compute/locations/eastus" -ResourceName standardDSv2Family
+
+# Check if the Az.Quota module is installed
+$moduleInstalled = Get-Module -Name Az.Quota -ListAvailable
+
+# If the module is not installed, install it
+if (-not $moduleInstalled) {
+    Install-Module -Name Az.Quota -Force
+}
+
