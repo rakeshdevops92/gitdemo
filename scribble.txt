@@ -1,10 +1,16 @@
 Get-AzQuota -Scope "subscriptions/my-sub/providers/Microsoft.Compute/locations/eastus" -ResourceName standardDSv2Family
 
-# Check if the Az.Quota module is installed
-$moduleInstalled = Get-Module -Name Az.Quota -ListAvailable
+$providerName = "Microsoft.ProviderName" # Replace with the actual resource provider name you want to register
 
-# If the module is not installed, install it
-if (-not $moduleInstalled) {
-    Install-Module -Name Az.Quota -Force
+# Check if the resource provider is already registered
+$provider = Get-AzResourceProvider -ProviderNamespace $providerName
+
+if (-not $provider.IsRegistered) {
+    # Register the resource provider
+    Register-AzResourceProvider -ProviderNamespace $providerName
+    Write-Host "Resource provider '$providerName' has been registered."
+}
+else {
+    Write-Host "Resource provider '$providerName' is already registered."
 }
 
