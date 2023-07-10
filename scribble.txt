@@ -1,0 +1,1 @@
+Get-AzQuota -Scope "subscriptions/my-sub/providers/Microsoft.Compute/locations/eastus" -ResourceName standardDSv2Family
