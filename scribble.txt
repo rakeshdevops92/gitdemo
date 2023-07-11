@@ -3,4 +3,5 @@ $availabilityPercentage = [math]::Round(($availability / $vmUsage.Limit) * 100, 
 
 Write-Output "Availability Percentage: $availabilityPercentage%"
 
+$newLimit = [math]::Ceiling($vmUsage.Limit * 1.3)
 
