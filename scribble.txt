@@ -1,16 +1,6 @@
-Get-AzQuota -Scope "subscriptions/my-sub/providers/Microsoft.Compute/locations/eastus" -ResourceName standardDSv2Family
+# Calculate the availability percentage
+$availabilityPercentage = [math]::Round(($availability / $vmUsage.Limit) * 100, 2)
 
-$providerName = "Microsoft.ProviderName" # Replace with the actual resource provider name you want to register
+Write-Output "Availability Percentage: $availabilityPercentage%"
 
-# Check if the resource provider is already registered
-$provider = Get-AzResourceProvider -ProviderNamespace $providerName
-
-if (-not $provider.IsRegistered) {
-    # Register the resource provider
-    Register-AzResourceProvider -ProviderNamespace $providerName
-    Write-Host "Resource provider '$providerName' has been registered."
-}
-else {
-    Write-Host "Resource provider '$providerName' is already registered."
-}
 
