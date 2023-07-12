@@ -1,23 +1,29 @@
-# Calculate the availability percentage
-$availabilityPercentage = [math]::Round(($availability / $vmUsage.Limit) * 100, 2)
+param (
+    [Parameter(Mandatory = $true)]
+    [string] $ResourceGroupName,
+    
+    [Parameter(Mandatory = $true)]
+    [string] $DiskName,
+    
+    [Parameter(Mandatory = $true)]
+    [int] $NewDiskSizeGB
+)
 
-Write-Output "Availability Percentage: $availabilityPercentage%"
+# Authenticate to Azure
+$connection = Get-AutomationConnection -Name 'AzureRunAsConnection'
+Connect-AzAccount -ServicePrincipal `
+    -TenantId $connection.TenantId `
+    -ApplicationId $connection.ApplicationId `
+    -CertificateThumbprint $connection.CertificateThumbprint
 
-$newLimit = [math]::Ceiling($vmUsage.Limit * 1.3)
+# Get the disk
+$disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $DiskName
 
+# Increase the disk size
+$disk.DiskSizeGB = $NewDiskSizeGB
 
-$smtpServer = "smtp.office365.com"
-$smtpPort = 587
-$smtpUsername = "your-email@example.com"
-$smtpPassword = "your-password"
-$fromEmail = "your-email@example.com"
-$toEmail = "recipient-email@example.com"
-$subject = "Test Email"
-$body = "This is a test email from Azure Automation Runbook."
+# Update the disk
+Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
 
-# Create a credential object for SMTP authentication
-$smtpCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $smtpUsername, (ConvertTo-SecureString -String $smtpPassword -AsPlainText -Force)
-
-# Send the email
-Send-MailMessage -SmtpServer $smtpServer -Port $smtpPort -UseSsl -Credential $smtpCredential -From $fromEmail -To $toEmail -Subject $subject -Body $body
-
+# Disconnect from Azure
+Disconnect-AzAccount
