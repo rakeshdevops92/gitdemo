@@ -1,1 +1,1 @@
-New-AzDiskUpdateConfig -DiskSizeGB 10 | Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
+New-AzDiskUpdateConfig -DiskSizeGB $NewDiskSizeGB | Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
