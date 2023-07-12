@@ -1,7 +1,1 @@
-
-Write-Output "Current disk size: $($disk.DiskSizeGB) GB"
-
-
-Write-Output "Increasing disk size to: $NewDiskSizeGB GB"
-
-Write-Output "Disk size increased successfully."
+New-AzDiskUpdateConfig -DiskSizeGB 10 | Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
