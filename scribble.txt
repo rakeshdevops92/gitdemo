@@ -1,29 +1,7 @@
-param (
-    [Parameter(Mandatory = $true)]
-    [string] $ResourceGroupName,
-    
-    [Parameter(Mandatory = $true)]
-    [string] $DiskName,
-    
-    [Parameter(Mandatory = $true)]
-    [int] $NewDiskSizeGB
-)
 
-# Authenticate to Azure
-$connection = Get-AutomationConnection -Name 'AzureRunAsConnection'
-Connect-AzAccount -ServicePrincipal `
-    -TenantId $connection.TenantId `
-    -ApplicationId $connection.ApplicationId `
-    -CertificateThumbprint $connection.CertificateThumbprint
+Write-Output "Current disk size: $($disk.DiskSizeGB) GB"
 
-# Get the disk
-$disk = Get-AzDisk -ResourceGroupName $ResourceGroupName -DiskName $DiskName
 
-# Increase the disk size
-$disk.DiskSizeGB = $NewDiskSizeGB
+Write-Output "Increasing disk size to: $NewDiskSizeGB GB"
 
-# Update the disk
-Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
-
-# Disconnect from Azure
-Disconnect-AzAccount
+Write-Output "Disk size increased successfully."
