@@ -23,6 +23,10 @@ $vmSizeInfo1 = (Get-AzVMSize -Location $Region1 | Where-Object { $_.Name -eq $VM
 $availability1 = $vmSizeInfo1 | Where-Object { $_.Name -eq "AvailabilitySet" } | Select-Object -ExpandProperty Value
 $numberOfUnits1 = $vmSizeInfo1 | Where-Object { $_.Name -eq "MaxResourceVolumeMB" } | Select-Object -ExpandProperty Value
 
+# Log the number of units available in each region
+Write-Output "Number of units available in Region 1: $numberOfUnits1"
+Write-Output "Number of units available in Region 2: $numberOfUnits2"
+
 # Get the availability and number of units for the VM size in Region 2
 $vmSizeInfo2 = (Get-AzVMSize -Location $Region2 | Where-Object { $_.Name -eq $VMSize }).Capabilities
 $availability2 = $vmSizeInfo2 | Where-Object { $_.Name -eq "AvailabilitySet" } | Select-Object -ExpandProperty Value
