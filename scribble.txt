@@ -13,34 +13,31 @@ param (
 )
 
 # Connect to Azure with system-assigned managed identity
-$connection = Get-AutomationConnection -Name 'AzureRunAsConnection'
-Connect-AzAccount -ServicePrincipal `
-    -TenantId $connection.TenantId `
-    -ApplicationId $connection.ApplicationId `
-    -CertificateThumbprint $connection.CertificateThumbprint
+$AzureContext = (Connect-AzAccount -Identity).Context
 
 # Log the start of the Runbook
 Write-Output "Starting the Runbook..."
 
 # Get the availability and number of units for the VM size in Region 1
-$vmSizeInfo1 = az vm list-sizes --location $Region1 --query "[?name=='$VMSize'].{Availability:capabilities[?name=='AvailabilitySet'].value | [0], NumberOfUnits:capabilities[?name=='MaxResourceVolumeMB'].value | [0]}" --output json | ConvertFrom-Json
+$vmSizeInfo1 = (Get-AzVMSize -Location $Region1 | Where-Object { $_.Name -eq $VMSize }).Capabilities
+$availability1 = $vmSizeInfo1 | Where-Object { $_.Name -eq "AvailabilitySet" } | Select-Object -ExpandProperty Value
+$numberOfUnits1 = $vmSizeInfo1 | Where-Object { $_.Name -eq "MaxResourceVolumeMB" } | Select-Object -ExpandProperty Value
 
 # Get the availability and number of units for the VM size in Region 2
-$vmSizeInfo2 = az vm list-sizes --location $Region2 --query "[?name=='$VMSize'].{Availability:capabilities[?name=='AvailabilitySet'].value | [0], NumberOfUnits:capabilities[?name=='MaxResourceVolumeMB'].value | [0]}" --output json | ConvertFrom-Json
+$vmSizeInfo2 = (Get-AzVMSize -Location $Region2 | Where-Object { $_.Name -eq $VMSize }).Capabilities
+$availability2 = $vmSizeInfo2 | Where-Object { $_.Name -eq "AvailabilitySet" } | Select-Object -ExpandProperty Value
+$numberOfUnits2 = $vmSizeInfo2 | Where-Object { $_.Name -eq "MaxResourceVolumeMB" } | Select-Object -ExpandProperty Value
 
 # Check if the available units are less than the threshold in Region 1
-if ($vmSizeInfo1.NumberOfUnits -lt $Threshold) {
+if ($numberOfUnits1 -lt $Threshold) {
     $message1 = "Region 1: Available units for VM size '$VMSize' is less than the threshold ($Threshold)."
     Write-Output $message1
     # Send notification using your preferred method (e.g., email, Teams, etc.)
 }
 
 # Check if the available units are less than the threshold in Region 2
-if ($vmSizeInfo2.NumberOfUnits -lt $Threshold) {
+if ($numberOfUnits2 -lt $Threshold) {
     $message2 = "Region 2: Available units for VM size '$VMSize' is less than the threshold ($Threshold)."
     Write-Output $message2
     # Send notification using your preferred method (e.g., email, Teams, etc.)
 }
-
-# Disconnect from Azure
-Disconnect-AzAccount
