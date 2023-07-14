@@ -1,1 +1,46 @@
-New-AzDiskUpdateConfig -DiskSizeGB $NewDiskSizeGB | Update-AzDisk -ResourceGroupName $ResourceGroupName -Disk $disk
+param (
+    [Parameter(Mandatory = $true)]
+    [string] $Region1,
+
+    [Parameter(Mandatory = $true)]
+    [string] $Region2,
+
+    [Parameter(Mandatory = $true)]
+    [string] $VMSize,
+
+    [Parameter(Mandatory = $true)]
+    [int] $Threshold
+)
+
+# Connect to Azure with system-assigned managed identity
+$connection = Get-AutomationConnection -Name 'AzureRunAsConnection'
+Connect-AzAccount -ServicePrincipal `
+    -TenantId $connection.TenantId `
+    -ApplicationId $connection.ApplicationId `
+    -CertificateThumbprint $connection.CertificateThumbprint
+
+# Log the start of the Runbook
+Write-Output "Starting the Runbook..."
+
+# Get the availability and number of units for the VM size in Region 1
+$vmSizeInfo1 = az vm list-sizes --location $Region1 --query "[?name=='$VMSize'].{Availability:capabilities[?name=='AvailabilitySet'].value | [0], NumberOfUnits:capabilities[?name=='MaxResourceVolumeMB'].value | [0]}" --output json | ConvertFrom-Json
+
+# Get the availability and number of units for the VM size in Region 2
+$vmSizeInfo2 = az vm list-sizes --location $Region2 --query "[?name=='$VMSize'].{Availability:capabilities[?name=='AvailabilitySet'].value | [0], NumberOfUnits:capabilities[?name=='MaxResourceVolumeMB'].value | [0]}" --output json | ConvertFrom-Json
+
+# Check if the available units are less than the threshold in Region 1
+if ($vmSizeInfo1.NumberOfUnits -lt $Threshold) {
+    $message1 = "Region 1: Available units for VM size '$VMSize' is less than the threshold ($Threshold)."
+    Write-Output $message1
+    # Send notification using your preferred method (e.g., email, Teams, etc.)
+}
+
+# Check if the available units are less than the threshold in Region 2
+if ($vmSizeInfo2.NumberOfUnits -lt $Threshold) {
+    $message2 = "Region 2: Available units for VM size '$VMSize' is less than the threshold ($Threshold)."
+    Write-Output $message2
+    # Send notification using your preferred method (e.g., email, Teams, etc.)
+}
+
+# Disconnect from Azure
+Disconnect-AzAccount
