@@ -1,1 +1,1 @@
-https://learn.microsoft.com/en-us/azure/azure-resource-manager/troubleshooting/error-sku-not-available?tabs=azure-powershell
+(Get-AzQuota -Scope "subscriptions/7b764d31-adc1-4ab6-9a3c-5b25da4d14d8/providers/Microsoft.Compute/locations/eastus" -ResourceName standardDSv2Family).NameLocalizedValue
