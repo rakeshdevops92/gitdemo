@@ -1,3 +1,18 @@
- $VMSKUs = Get-AzComputeResourceSku | where {$_.Locations.Contains($Region) -and $_.ResourceType.Contains("virtualMachines") -and $_.Name.Equals($VMSku)}
+$rgname ="learning"
+$vmname ="demorun"
 
-$VMSku = "Standard_DS2_v2" # change VM SKU here  
+$ScriptToRun = @"
+# This is a multi-line PowerShell script
+echo 'Script from inside'
+$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe -Command "Get-Process | Select-Object Name, Id"
+"@
+
+# Save the script to a temporary file
+$ScriptPath = "ScriptToRun.ps1"
+$ScriptToRun | Out-File -FilePath $ScriptPath
+
+# Invoke the script on the VM
+Invoke-AzVMRunCommand -ResourceGroupName $rgname -Name $vmname -CommandId 'RunPowerShellScript' -ScriptPath $ScriptPath
+
+# Remove the temporary script file
+Remove-Item -Path $ScriptPath
