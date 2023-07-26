@@ -75,11 +75,16 @@ spec:
           volumeMounts:
             - name: petclinic-persistent-storage
               mountPath: /tmp
+            - name: petclinic-config   # Adding the ConfigMap volume mount
+              mountPath: /config       # Mount path inside the container
+              readOnly: true           # Read-only access to ConfigMap
       volumes:
         - name: petclinic-persistent-storage
           persistentVolumeClaim:
             claimName: petclinic-pvc
-
+        - name: petclinic-config      # ConfigMap volume definition
+          configMap:
+            name: petclinic-configmap
 
 
 mysql-pvc.yaml
