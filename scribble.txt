@@ -1,11 +1,11 @@
-$numbersArray = @(1, 5, 10, 15, 20)
+# Initialize a variable to store the result
+$greaterNumber = $null
 
-# Number to find
-$targetNumber = 8
-
-# Check if the number is in the array
-if ($numbersArray -contains $targetNumber) {
-    Write-Host "Number $targetNumber found in the array."
-} else {
-    throw "Number $targetNumber not found in the array."
+# Loop through the array
+foreach ($number in $numbersArray) {
+    if ($number -gt $inputNumber) {
+        # The first number greater than the input is found
+        $greaterNumber = $number
+        break
+    }
 }
