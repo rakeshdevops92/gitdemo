@@ -1,11 +1,6 @@
-# Initialize a variable to store the result
-$greaterNumber = $null
-
-# Loop through the array
-foreach ($number in $numbersArray) {
-    if ($number -gt $inputNumber) {
-        # The first number greater than the input is found
-        $greaterNumber = $number
-        break
-    }
-}
+$partitions = Get-Partition -DiskNumber $disk.Number  
+    foreach ($partition in $partitions)  
+    {  
+        Write-Output "LUN Number: $($partition.Number)"  
+        Write-Output "Drive Letter: $($partition.DriveLetter)"  
+    }  
