@@ -1,56 +1,101 @@
-# Ensures you do not inherit an AzContext in your runbook
-Disable-AzContextAutosave -Scope Process
+[OutputType("PSAzureOperationResponse")]
+param
+(
+    [Parameter (Mandatory=$false)]
+    [object] $WebhookData
+)
+$ErrorActionPreference = "stop"
 
-# Connect to Azure with system-assigned managed identity
-$AzureContext = (Connect-AzAccount -Identity).context
+if ($WebhookData)
+{
+    # Get the data object from WebhookData
+    $WebhookBody = (ConvertFrom-Json -InputObject $WebhookData.RequestBody)
 
-# Set and store context
-$AzureContext = Set-AzContext -SubscriptionName $AzureContext.Subscription -DefaultProfile $AzureContext
+    # Get the info needed to identify the VM (depends on the payload schema)
+    $schemaId = $WebhookBody.schemaId
+    Write-Verbose "schemaId: $schemaId" -Verbose
+    if ($schemaId -eq "azureMonitorCommonAlertSchema") {
+        # This is the common Metric Alert schema (released March 2019)
+        $Essentials = [object] ($WebhookBody.data).essentials
+        # Get the first target only as this script doesn't handle multiple
+        $alertTargetIdArray = (($Essentials.alertTargetIds)[0]).Split("/")
+        $SubId = ($alertTargetIdArray)[2]
+        $ResourceGroupName = ($alertTargetIdArray)[4]
+        $ResourceType = ($alertTargetIdArray)[6] + "/" + ($alertTargetIdArray)[7]
+        $ResourceName = ($alertTargetIdArray)[-1]
+        $status = $Essentials.monitorCondition
+    }
+    elseif ($schemaId -eq "AzureMonitorMetricAlert") {
+        # This is the near-real-time Metric Alert schema
+        $AlertContext = [object] ($WebhookBody.data).context
+        $SubId = $AlertContext.subscriptionId
+        $ResourceGroupName = $AlertContext.resourceGroupName
+        $ResourceType = $AlertContext.resourceType
+        $ResourceName = $AlertContext.resourceName
+        $status = ($WebhookBody.data).status
+    }
+    elseif ($schemaId -eq "Microsoft.Insights/activityLogs") {
+        # This is the Activity Log Alert schema
+        $AlertContext = [object] (($WebhookBody.data).context).activityLog
+        $SubId = $AlertContext.subscriptionId
+        $ResourceGroupName = $AlertContext.resourceGroupName
+        $ResourceType = $AlertContext.resourceType
+        $ResourceName = (($AlertContext.resourceId).Split("/"))[-1]
+        $status = ($WebhookBody.data).status
+    }
+    elseif ($schemaId -eq $null) {
+        # This is the original Metric Alert schema
+        $AlertContext = [object] $WebhookBody.context
+        $SubId = $AlertContext.subscriptionId
+        $ResourceGroupName = $AlertContext.resourceGroupName
+        $ResourceType = $AlertContext.resourceType
+        $ResourceName = $AlertContext.resourceName
+        $status = $WebhookBody.status
+    }
+    else {
+        # Schema not supported
+        Write-Error "The alert data schema - $schemaId - is not supported."
+    }
 
-# Log the start of the Runbook
-Write-Output "Starting VM Quota Limit Check Runbook..."
+    Write-Verbose "status: $status" -Verbose
+    if (($status -eq "Activated") -or ($status -eq "Fired"))
+    {
+        Write-Verbose "resourceType: $ResourceType" -Verbose
+        Write-Verbose "resourceName: $ResourceName" -Verbose
+        Write-Verbose "resourceGroupName: $ResourceGroupName" -Verbose
+        Write-Verbose "subscriptionId: $SubId" -Verbose
 
-# Define the Resource Group and VM name
-$resourceGroupName = "learning"
-$vmName = "demorun"
+        # Determine code path depending on the resourceType
+        if ($ResourceType -eq "Microsoft.Compute/virtualMachines")
+        {
+            # This is an Resource Manager VM
+            Write-Verbose "This is an Resource Manager VM." -Verbose
 
-# Define the name of the data disk and the new size in GB
-$diskName = "dd1"  # Replace with the name of your data disk
-$newDiskSizeGB = 64  # Replace with the new size in GB
+            # Ensures you do not inherit an AzContext in your runbook
+            Disable-AzContextAutosave -Scope Process
 
-# Get the data disk
-$disk = Get-AzDisk -ResourceGroupName $resourceGroupName -DiskName $diskName
+            # Connect to Azure with system-assigned managed identity
+            $AzureContext = (Connect-AzAccount -Identity).context
 
-if ($disk) {
-    $currentDiskSizeGB = $disk.DiskSizeGB
+            # set and store context
+            $AzureContext = Set-AzContext -SubscriptionName $AzureContext.Subscription -DefaultProfile $AzureContext
 
-    Write-Output "Current Data Disk Size: $currentDiskSizeGB GB"
-    Write-Output "Increasing Data Disk Size to $newDiskSizeGB GB..."
-
-    # Resize the data disk
-    $disk.DiskSizeGB = $newDiskSizeGB
-    $disk | Update-AzDisk
-
-    Write-Output "Data Disk Size increased to $newDiskSizeGB GB successfully."
-
-    # Define the command to expand the volume
-    $scriptContent = @'
-    $disks = Get-Disk | Where-Object Number -gt 0
-    foreach ($disk in $disks) {
-        $partitions = Get-Partition -DiskNumber $disk.Number
-        foreach ($partition in $partitions) {
-            if ($partition.Size -lt 1GB) {
-                continue
-            }
-            $size = (Get-PartitionSupportedSize -DiskNumber $disk.Number -PartitionNumber $partition.PartitionNumber).SizeMax
-            Resize-Partition -DiskNumber $disk.Number -PartitionNumber $partition.PartitionNumber -Size $size
+            # Stop the Resource Manager VM
+            Write-Verbose "Stopping the VM - $ResourceName - in resource group - $ResourceGroupName -" -Verbose
+            Stop-AzVM -Name $ResourceName -ResourceGroupName $ResourceGroupName -DefaultProfile $AzureContext -Force
+            # [OutputType(PSAzureOperationResponse")]
+        }
+        else {
+            # ResourceType not supported
+            Write-Error "$ResourceType is not a supported resource type for this runbook."
         }
     }
-'@
-
-    # Execute the command on the VM
-    Invoke-AzVMRunCommand -ResourceGroupName $resourceGroupName -Name $vmName -CommandId 'RunPowerShellScript' -ScriptString $scriptContent
-
-} else {
-    Write-Output "Data Disk not found or not attached to the VM."
+    else {
+        # The alert status was not 'Activated' or 'Fired' so no action taken
+        Write-Verbose ("No action taken. Alert status: " + $status) -Verbose
+    }
+}
+else {
+    # Error
+    Write-Error "This runbook is meant to be started from an Azure alert webhook only."
 }
