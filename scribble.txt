@@ -1,13 +1,7 @@
-$resourceGroupName = "YourResourceGroupName"
-$vmName = "YourVMName"
+$scriptContent = @'
+    # Get the partition name
+    partition=$(lsblk -o NAME,MOUNTPOINT | grep "/" | awk '{print $1}')
 
-# Get the VM object
-$vm = Get-AzVM -ResourceGroupName $resourceGroupName -VMName $vmName
-
-# Loop through the data disks attached to the VM
-foreach ($dataDisk in $vm.StorageProfile.DataDisks) {
-    Write-Host "Data Disk Name: $($dataDisk.Name)"
-    Write-Host "Data Disk Size (GB): $($dataDisk.DiskSizeGB)"
-    Write-Host "Data Disk Lun: $($dataDisk.Lun)"
-    Write-Host "----------------------"
-}
+    # Resize the filesystem
+    resize2fs /dev/$partition
+'@
