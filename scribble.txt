@@ -1,7 +1,16 @@
-$scriptContent = @'
-    # Get the partition name
-    partition=$(lsblk -o NAME,MOUNTPOINT | grep "/" | awk '{print $1}')
+# Get the partition name
+partition=$(lsblk -o NAME,MOUNTPOINT | grep "/" | awk '{print $1}')
 
-    # Resize the filesystem
-    resize2fs /dev/$partition
-'@
+if [ -z "$partition" ]; then
+    echo "Error: Could not determine root partition."
+    exit 1
+fi
+
+# Check if resize2fs command exists
+if ! command -v resize2fs >/dev/null; then
+    echo "Error: resize2fs command not found."
+    exit 1
+fi
+
+# Resize the filesystem
+resize2fs "$partition"
