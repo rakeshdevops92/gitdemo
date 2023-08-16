@@ -1,16 +1,7 @@
-# Get the partition name
-partition=$(lsblk -o NAME,MOUNTPOINT | grep "/" | awk '{print $1}')
+# Get the quota information for a specific scope
+# Replace "subscriptions/xxx/providers/Microsoft.Compute/locations/eastus" with the appropriate scope
+$x = Get-AzQuota -Scope "subscriptions/xxx/providers/Microsoft.Compute/locations/eastus" |
+    Where-Object { $_.NameLocalizedValue -eq "Standard EIDv5 Family vCPUs" }
 
-if [ -z "$partition" ]; then
-    echo "Error: Could not determine root partition."
-    exit 1
-fi
-
-# Check if resize2fs command exists
-if ! command -v resize2fs >/dev/null; then
-    echo "Error: resize2fs command not found."
-    exit 1
-fi
-
-# Resize the filesystem
-resize2fs "$partition"
+# Output the name of the quota
+$x.name
