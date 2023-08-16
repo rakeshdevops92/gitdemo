@@ -1,7 +1,14 @@
 # Get the quota information for a specific scope
 # Replace "subscriptions/xxx/providers/Microsoft.Compute/locations/eastus" with the appropriate scope
-$x = Get-AzQuota -Scope "subscriptions/xxx/providers/Microsoft.Compute/locations/eastus" |
-    Where-Object { $_.NameLocalizedValue -eq "Standard EIDv5 Family vCPUs" }
+$quotas = Get-AzQuota -Scope "subscriptions/xxx/providers/Microsoft.Compute/locations/eastus"
 
-# Output the name of the quota
-$x.name
+# Initialize an array to store the names
+$quotaNames = @()
+
+# Loop through each quota and save the NameLocalizedValue in the array
+foreach ($quota in $quotas) {
+    $quotaNames += $quota.NameLocalizedValue
+}
+
+# Output the array of quota names
+$quotaNames
