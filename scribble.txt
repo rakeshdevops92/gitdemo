@@ -1,10 +1,16 @@
-# Check if the provider is registered
-$registrationStatus = Get-AzProviderFeature -ProviderNamespace Microsoft.Quota -FeatureName quotaApi
+$region = "East US"  # Replace with your desired region
+$desiredSkus = @("Standard_DS2_v2", "Standard_D2_v3", "Standard_F2s_v2")  # Replace with your desired list of VM SKUs
 
-# Register the provider if not already registered
-if ($registrationStatus.RegistrationState -ne 'Registered') {
-    Register-AzProviderFeature -ProviderNamespace Microsoft.Quota -FeatureName quotaApi
-    Write-Output "Microsoft.Quota provider registered."
-} else {
-    Write-Output "Microsoft.Quota provider is already registered."
+$availableSkus = Get-AzComputeResourceSku | Where-Object { $_.Locations -contains $region }
+
+$unavailableSkus = @()
+
+foreach ($sku in $desiredSkus) {
+    if ($availableSkus.Name -notcontains $sku) {
+        $unavailableSkus += $sku
+    }
+}
+
+if ($unavailableSkus.Count -gt 0) {
+    # Trigger an alert or perform desired action
 }
