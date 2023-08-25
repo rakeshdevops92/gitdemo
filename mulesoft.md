@@ -1,5 +1,3 @@
-I apologize for misunderstanding your request earlier. I see now that you're looking for the complete code encapsulated within a GitHub-style README. Here's how that would look:
-
 ---
 
 # MuleSoft Application with Azure Application Insights Integration
