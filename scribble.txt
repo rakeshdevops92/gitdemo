@@ -1,53 +1,40 @@
-# Define the regions to compare
-$Region1 = "centralus"
-$Region2 = "eastus2"
+#!/bin/bash
 
-# Get the available virtual machine SKUs for each region
-$VMSKUs1 = Get-AzComputeResourceSku | Where-Object { $_.Locations.Contains($Region1) -and $_.ResourceType.Contains("virtualMachines") }
-$VMSKUs2 = Get-AzComputeResourceSku | Where-Object { $_.Locations.Contains($Region2) -and $_.ResourceType.Contains("virtualMachines") }
+# Check if an argument is provided
+if [[ -z "$1" ]]; then
+    echo "Usage: $0 <INSTANCE_NAME>"
+    exit 1
+fi
 
-# Initialize output tables for each region
-$OutTable1 = @()
-$OutTable2 = @()
+INSTANCE_NAME="$1"
 
-# Loop through SKUs in Region 1 and check for location and zone restrictions
-foreach ($SkuName in $VMSKUs1.Name) {
-    $LocRestriction1 = if ((($VMSKUs1 | Where-Object Name -EQ $SkuName).Restrictions.Type | Out-String).Contains("Location")) { "NotAvailableInRegion" } else { "Available - No region restrictions applied" }
-    $ZoneRestriction1 = if ((($VMSKUs1 | Where-Object Name -EQ $SkuName).Restrictions.Type | Out-String).Contains("Zone")) { "NotAvailableInZone: " + ((($VMSKUs1 | Where-Object Name -EQ $SkuName).Restrictions.RestrictionInfo.Zones) | Where-Object { $_ }) -join "," } else { "Available - No zone restrictions applied" }
+# Fetching instance IDs based on the name
+echo "Fetching instance IDs for the name: $INSTANCE_NAME..."
+INSTANCE_IDS=$(aws ec2 describe-instances \
+    --filter "Name=tag:Name,Values=$INSTANCE_NAME" \
+    --query "Reservations[*].Instances[*].InstanceId" \
+    --output text)
 
-    # Add the SKU information to the output table for Region 1
-    $OutTable1 += New-Object PSObject -Property @{
-        "Name" = $SkuName
-        "Location" = $Region1
-        "Location Restriction" = $LocRestriction1
-        "Zone Restriction" = $ZoneRestriction1
-    }
-}
+# Check if any instances were found
+if [[ -z "$INSTANCE_IDS" ]]; then
+    echo "No instances found with the name: $INSTANCE_NAME"
+    exit 1
+fi
 
-# Loop through SKUs in Region 2 and check for location and zone restrictions
-foreach ($SkuName in $VMSKUs2.Name) {
-    $LocRestriction2 = if ((($VMSKUs2 | Where-Object Name -EQ $SkuName).Restrictions.Type | Out-String).Contains("Location")) { "NotAvailableInRegion" } else { "Available - No region restrictions applied" }
-    $ZoneRestriction2 = if ((($VMSKUs2 | Where-Object Name -EQ $SkuName).Restrictions.Type | Out-String).Contains("Zone")) { "NotAvailableInZone: " + ((($VMSKUs2 | Where-Object Name -EQ $SkuName).Restrictions.RestrictionInfo.Zones) | Where-Object { $_ }) -join "," } else { "Available - No zone restrictions applied" }
+# Looping through each instance ID and modifying metadata options
+for INSTANCE in $INSTANCE_IDS; do
+    echo "Modifying metadata options for instance: $INSTANCE..."
+    aws ec2 modify-instance-metadata-options \
+        --instance-id $INSTANCE \
+        --http-tokens required \
+        --http-endpoint enabled
 
-    # Add the SKU information to the output table for Region 2
-    $OutTable2 += New-Object PSObject -Property @{
-        "Name" = $SkuName
-        "Location" = $Region2
-        "Location Restriction" = $LocRestriction2
-        "Zone Restriction" = $ZoneRestriction2
-    }
-}
+    # Check the result of the modify command
+    if [[ $? -eq 0 ]]; then
+        echo "Successfully modified metadata options for instance: $INSTANCE"
+    else
+        echo "Failed to modify metadata options for instance: $INSTANCE"
+    fi
+done
 
-# Print the tables
-$OutTable1 | Select-Object Name, Location, "Applies to SubscriptionID", "Subscription Restriction", "Zone Restriction" | Sort-Object -Property Name | Format-Table
-$OutTable2 | Select-Object Name, Location, "Applies to SubscriptionID", "Subscription Restriction", "Zone Restriction" | Sort-Object -Property Name | Format-Table
-
-# Compare the SKUs in both regions and trigger an alert if there are differences in availability
-foreach ($sku1 in $OutTable1) {
-    $sku2 = $OutTable2 | Where-Object { $_.Name -eq $sku1.Name }
-    if ($null -ne $sku2) {
-        if ($sku1."Location Restriction" -ne $sku2."Location Restriction" -or $sku1."Zone Restriction" -ne $sku2."Zone Restriction") {
-            Write-Host "Alert: SKU $($sku1.Name) has different availability in regions or zones."
-        }
-    }
-}
+echo "Script execution completed!"
