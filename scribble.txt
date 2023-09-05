@@ -1,40 +1,12 @@
+# Define the inline script content
+$scriptContent = @'
 #!/bin/bash
+echo "Hello from inline script on the Azure Automation runbook!"
+'@
 
-# Check if an argument is provided
-if [[ -z "$1" ]]; then
-    echo "Usage: $0 <INSTANCE_NAME>"
-    exit 1
-fi
+# Save the inline script to a temporary path
+$scriptLocalPath = "D:\Temp\yourScript.sh"
+Set-Content -Path $scriptLocalPath -Value $scriptContent
 
-INSTANCE_NAME="$1"
-
-# Fetching instance IDs based on the name
-echo "Fetching instance IDs for the name: $INSTANCE_NAME..."
-INSTANCE_IDS=$(aws ec2 describe-instances \
-    --filter "Name=tag:Name,Values=$INSTANCE_NAME" \
-    --query "Reservations[*].Instances[*].InstanceId" \
-    --output text)
-
-# Check if any instances were found
-if [[ -z "$INSTANCE_IDS" ]]; then
-    echo "No instances found with the name: $INSTANCE_NAME"
-    exit 1
-fi
-
-# Looping through each instance ID and modifying metadata options
-for INSTANCE in $INSTANCE_IDS; do
-    echo "Modifying metadata options for instance: $INSTANCE..."
-    aws ec2 modify-instance-metadata-options \
-        --instance-id $INSTANCE \
-        --http-tokens required \
-        --http-endpoint enabled
-
-    # Check the result of the modify command
-    if [[ $? -eq 0 ]]; then
-        echo "Successfully modified metadata options for instance: $INSTANCE"
-    else
-        echo "Failed to modify metadata options for instance: $INSTANCE"
-    fi
-done
-
-echo "Script execution completed!"
+# Run your script on the VM
+Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptPath $scriptLocalPath
