@@ -1,12 +1,20 @@
-# Define the inline script content
-$scriptContent = @'
-#!/bin/bash
-echo "Hello from inline script on the Azure Automation runbook!"
-'@
-
-# Save the inline script to a temporary path
-$scriptLocalPath = "D:\Temp\yourScript.sh"
-Set-Content -Path $scriptLocalPath -Value $scriptContent
-
-# Run your script on the VM
-Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptPath $scriptLocalPath
+$scriptContent = '#!/bin/bash' + "`n" + 
+'exec &> /tmp/log.txt' + "`n" + 
+'echo "Initiating rescan..."' + "`n" + 
+'sudo umount /mnt' + "`n" + 
+'echo 1 | sudo tee /sys/class/block/sdc/device/rescan > /dev/null' + "`n" + 
+'sudo partprobe /dev/sdc' + "`n" + 
+'dmesg | tail' + "`n" + 
+'echo "Rescan completed."' + "`n" + 
+'echo "Listing block devices..."' + "`n" + 
+'lsblk' + "`n" + 
+'echo "Checking disk using fdisk..."' + "`n" + 
+'sudo fdisk -l /dev/sdc' + "`n" + 
+'echo "Starting partition resize..."' + "`n" + 
+'sudo growpart /dev/sdc 1' + "`n" + 
+'echo "Partition resized."' + "`n" + 
+'echo "Resizing filesystem..."' + "`n" + 
+'sudo resize2fs /dev/sdc1' + "`n" + 
+'echo "Remounting filesystem..."' + "`n" + 
+'sudo mount /dev/sdc1 /mnt' + "`n" + 
+'echo "Filesystem resize completed."'
