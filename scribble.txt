@@ -18,3 +18,5 @@ $scriptContent = '#!/bin/bash' + "`n" +
 'echo "Remounting filesystem..."' + "`n" + 
 'sudo mount /dev/sdc1 /mnt' + "`n" + 
 'echo "Filesystem resize completed."'
+
+Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptString $scriptContent
