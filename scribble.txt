@@ -1,22 +1,45 @@
-$scriptContent = '#!/bin/bash' + "`n" + 
-'exec &> /tmp/log.txt' + "`n" + 
-'echo "Initiating rescan..."' + "`n" + 
-'sudo umount /mnt' + "`n" + 
-'echo 1 | sudo tee /sys/class/block/sdc/device/rescan > /dev/null' + "`n" + 
-'sudo partprobe /dev/sdc' + "`n" + 
-'dmesg | tail' + "`n" + 
-'echo "Rescan completed."' + "`n" + 
-'echo "Listing block devices..."' + "`n" + 
-'lsblk' + "`n" + 
-'echo "Checking disk using fdisk..."' + "`n" + 
-'sudo fdisk -l /dev/sdc' + "`n" + 
-'echo "Starting partition resize..."' + "`n" + 
-'sudo growpart /dev/sdc 1' + "`n" + 
-'echo "Partition resized."' + "`n" + 
-'echo "Resizing filesystem..."' + "`n" + 
-'sudo resize2fs /dev/sdc1' + "`n" + 
-'echo "Remounting filesystem..."' + "`n" + 
-'sudo mount /dev/sdc1 /mnt' + "`n" + 
-'echo "Filesystem resize completed."'
+# Ensures you do not inherit an AzContext in your runbook
+Disable-AzContextAutosave -Scope Process
 
+# Connect to Azure with system-assigned managed identity
+$AzureContext = (Connect-AzAccount -Identity).context
+
+# Set and store context
+$AzureContext = Set-AzContext -SubscriptionName $AzureContext.Subscription -DefaultProfile $AzureContext
+
+# Log the start of the Runbook
+Write-Output "Starting VM Quota Limit Check Runbook..."
+# Define the Resource Group and VM
+$ResourceGroupName = "learning" # Replace with your Resource Group name
+$VMName = "simpleLinuxVM" # Replace with your VM name
+
+# Define the script content to create a file on the Linux VM
+# $scriptContent = '#!/bin/bash' + "`n" + 
+# 'touch /tmp/yourfile.txt' + "`n" + 
+# 'echo "File created successfully" > /tmp/yourfile.txt'
+
+$scriptContent = '#!/bin/bash' + "`n" + 
+'echo "Initiating rescan..." ' + "`n" + 
+'echo 1 > /sys/class/block/sdc/device/rescan' + "`n" + 
+'echo "Rescan completed."' + "`n" + 
+'echo "Starting fdisk utility..."' + "`n" + 
+'sudo fdisk /dev/sdc <<EOF' + "`n" +
+'p' + "`n" +   # Print the partition table (to check the existing partitions)
+'n' + "`n" +   # Create a new partition
+'p' + "`n" +   # Make it a primary partition
+'1' + "`n" +   # Assign it as partition number 1
+'' + "`n" +   # Accept the default start sector
+'' + "`n" +   # Accept the default end sector (utilizing the entire disk)
+'p' + "`n" +   # Print the partition table (to verify the changes)
+'w' + "`n" +   # Write the changes and exit fdisk
+'EOF' + "`n" +
+'echo "fdisk operations completed."' + "`n" +
+'echo "Resizing filesystem..."' + "`n" +
+'sudo resize2fs /dev/sdc1' + "`n" + 
+'echo "Filesystem resize completed."' + "`n" + 
+'exec &> /tmp/log.txt'
+
+
+
+# Run your script on the VM
 Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptString $scriptContent
