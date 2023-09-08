@@ -1,12 +1,23 @@
-# Define the inline script content
-$scriptContent = @'
-#!/bin/bash
-echo "Hello from inline script on the Azure Automation runbook!"
-'@
+trigger:
+- main
 
-# Save the inline script to a temporary path
-$scriptLocalPath = "D:\Temp\yourScript.sh"
-Set-Content -Path $scriptLocalPath -Value $scriptContent
+pool:
+  vmImage: 'ubuntu-latest'
 
-# Run your script on the VM
-Invoke-AzVMRunCommand -ResourceGroupName $ResourceGroupName -Name $VMName -CommandId 'RunShellScript' -ScriptPath $scriptLocalPath
+steps:
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'your-azure-subscription'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # First, get the credentials for your AKS cluster
+      az aks get-credentials --resource-group yourResourceGroup --name yourClusterName
+
+      # Now, get the list of deployments with the specified label
+      DEPLOYMENTS=$(kubectl get deployments -l app=myapp -o jsonpath='{.items[*].metadata.name}')
+
+      # Loop through the deployments and restart (bounce) each one
+      for DEPLOYMENT in $DEPLOYMENTS; do
+        kubectl rollout restart deployment/$DEPLOYMENT
+      done
