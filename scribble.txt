@@ -9,6 +9,22 @@ parameters:
   - prod
   - nonprod
   default: nonprod
+- name: subEnvironment
+  displayName: 'Select Sub-Environment'
+  type: string
+  values:
+  - dev
+  - test
+  - plab
+  - hf
+  default: dev
+- name: cluster
+  displayName: 'Select Cluster'
+  type: string
+  values:
+  - useast2
+  - uswest2
+  default: useast2
 - name: label
   displayName: 'Select Label'
   type: string
@@ -22,20 +38,80 @@ variables:
     value: |
       {
         "prod": {
-          "serviceConnection": "prodServiceConnectionName",
-          "resourceGroupName": "prodResourceGroup",
-          "clusterName": "prodClusterName",
-          "namespace": "prodNamespace"
+          "useast2": {
+            "serviceConnection": "prodUseast2ServiceConnectionName",
+            "resourceGroupName": "prodUseast2ResourceGroup",
+            "clusterName": "prodUseast2ClusterName",
+            "namespace": "prodUseast2Namespace"
+          },
+          "uswest2": {
+            "serviceConnection": "prodUswest2ServiceConnectionName",
+            "resourceGroupName": "prodUswest2ResourceGroup",
+            "clusterName": "prodUswest2ClusterName",
+            "namespace": "prodUswest2Namespace"
+          }
         },
         "nonprod": {
-          "serviceConnection": "nonprodServiceConnectionName",
-          "resourceGroupName": "nonprodResourceGroup",
-          "clusterName": "nonprodClusterName",
-          "namespace": "nonprodNamespace"
+          "dev": {
+            "useast2": {
+              "serviceConnection": "devUseast2ServiceConnectionName",
+              "resourceGroupName": "devUseast2ResourceGroup",
+              "clusterName": "devUseast2ClusterName",
+              "namespace": "devUseast2Namespace"
+            },
+            "uswest2": {
+              "serviceConnection": "devUswest2ServiceConnectionName",
+              "resourceGroupName": "devUswest2ResourceGroup",
+              "clusterName": "devUswest2ClusterName",
+              "namespace": "devUswest2Namespace"
+            }
+          },
+          "test": {
+            "useast2": {
+              "serviceConnection": "testUseast2ServiceConnectionName",
+              "resourceGroupName": "testUseast2ResourceGroup",
+              "clusterName": "testUseast2ClusterName",
+              "namespace": "testUseast2Namespace"
+            },
+            "uswest2": {
+              "serviceConnection": "testUswest2ServiceConnectionName",
+              "resourceGroupName": "testUswest2ResourceGroup",
+              "clusterName": "testUswest2ClusterName",
+              "namespace": "testUswest2Namespace"
+            }
+          },
+          "plab": {
+            "useast2": {
+              "serviceConnection": "plabUseast2ServiceConnectionName",
+              "resourceGroupName": "plabUseast2ResourceGroup",
+              "clusterName": "plabUseast2ClusterName",
+              "namespace": "plabUseast2Namespace"
+            },
+            "uswest2": {
+              "serviceConnection": "plabUswest2ServiceConnectionName",
+              "resourceGroupName": "plabUswest2ResourceGroup",
+              "clusterName": "plabUswest2ClusterName",
+              "namespace": "plabUswest2Namespace"
+            }
+          },
+          "hf": {
+            "useast2": {
+              "serviceConnection": "hfUseast2ServiceConnectionName",
+              "resourceGroupName": "hfUseast2ResourceGroup",
+              "clusterName": "hfUseast2ClusterName",
+              "namespace": "hfUseast2Namespace"
+            },
+            "uswest2": {
+              "serviceConnection": "hfUswest2ServiceConnectionName",
+              "resourceGroupName": "hfUswest2ResourceGroup",
+              "clusterName": "hfUswest2ClusterName",
+              "namespace": "hfUswest2Namespace"
+            }
+          }
         }
       }
   - name: environmentConfig
-    value: $[ variables['configuration'][parameters['environment']] ]
+    value: $[ variables['configuration'][parameters['environment']][parameters['subEnvironment']][parameters['cluster']] ]
 
 steps:
 - task: AzureCLI@2
