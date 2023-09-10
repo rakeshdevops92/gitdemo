@@ -22,6 +22,10 @@ parameters:
   default: useast2
 
 variables:
+  - name: selectedEnvironment
+    value: ${{ parameters.environment }}
+  - name: selectedClusterRegion
+    value: ${{ parameters.clusterRegion }}
   - name: configuration
     value: |
       {
@@ -41,10 +45,10 @@ variables:
         },
         "test": {
           "useast2": {
-            "serviceConnection": "testUseast2ServiceConnection",
-            "resourceGroupName": "testUseast2ResourceGroup",
-            "clusterName": "testUseast2Cluster",
-            "namespace": "testUseast2Namespace"
+            "serviceConnection": "25366-CricketOnline",
+            "resourceGroupName": "25366-eastus2-nprd-app-rg",
+            "clusterName": "ck-25366-eastus2-nprd-app-aks",
+            "namespace": "cwdigital-test"
           },
           "uswest2": {
             "serviceConnection": "testUswest2ServiceConnection",
@@ -97,7 +101,7 @@ variables:
         }
       }
   - name: environmentConfig
-    value: $[ variables['configuration'][parameters['environment']][parameters['clusterRegion']] ]
+    value: $[ variables['configuration'][variables['selectedEnvironment']][variables['selectedClusterRegion']] ]
 
 steps:
 - task: AzureCLI@2
@@ -106,20 +110,33 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
+      echo "Starting script execution..."
+      
       # Install kubelogin
+      echo "Installing kubelogin..."
       VERSION=$(curl --silent "https://api.github.com/repos/Azure/kubelogin/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
       wget https://github.com/Azure/kubelogin/releases/download/$VERSION/kubelogin-linux-amd64.zip
       unzip kubelogin-linux-amd64.zip
       sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+      echo "Kubelogin installed successfully."
       
       # Get credentials for AKS cluster
+      echo "Getting credentials for AKS cluster..."
       az aks get-credentials --resource-group $(environmentConfig.resourceGroupName) --name $(environmentConfig.clusterName) --overwrite-existing
+      echo "Credentials retrieved successfully."
       
       # Now, get the list of deployments with the specified label
+      echo "Getting the list of deployments with the specified label..."
       DEPLOYMENTS=$(kubectl get deployments -n $(environmentConfig.namespace) -l app=myapp -o jsonpath='{.items[*].metadata.name}')
-
+      echo "List of deployments retrieved: $DEPLOYMENTS"
+      
       # Loop through the deployments and restart (bounce) each one
+      echo "Restarting deployments..."
       for DEPLOYMENT in $DEPLOYMENTS; do
+        echo "Restarting deployment: $DEPLOYMENT"
         kubectl rollout restart deployment/$DEPLOYMENT -n $(environmentConfig.namespace)
+        echo "Deployment $DEPLOYMENT restarted successfully."
       done
+      
+      echo "Script execution completed."
   displayName: 'Run AZ CLI and kubectl commands'
