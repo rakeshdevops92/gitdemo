@@ -6,112 +6,98 @@ parameters:
   displayName: 'Select Environment'
   type: string
   values:
-  - prod
-  - nonprod
-  default: nonprod
-- name: subEnvironment
-  displayName: 'Select Sub-Environment'
-  type: string
-  values:
   - dev
   - test
   - plab
   - hf
+  - prod
   default: dev
-- name: cluster
-  displayName: 'Select Cluster'
+
+- name: clusterRegion
+  displayName: 'Select Cluster Region'
   type: string
   values:
   - useast2
   - uswest2
   default: useast2
-- name: label
-  displayName: 'Select Label'
-  type: string
-  default: 'app=myapp'
-
-pool:
-  vmImage: 'ubuntu-latest'
 
 variables:
   - name: configuration
     value: |
       {
+        "dev": {
+          "useast2": {
+            "serviceConnection": "devUseast2ServiceConnection",
+            "resourceGroupName": "devUseast2ResourceGroup",
+            "clusterName": "devUseast2Cluster",
+            "namespace": "devUseast2Namespace"
+          },
+          "uswest2": {
+            "serviceConnection": "devUswest2ServiceConnection",
+            "resourceGroupName": "devUswest2ResourceGroup",
+            "clusterName": "devUswest2Cluster",
+            "namespace": "devUswest2Namespace"
+          }
+        },
+        "test": {
+          "useast2": {
+            "serviceConnection": "testUseast2ServiceConnection",
+            "resourceGroupName": "testUseast2ResourceGroup",
+            "clusterName": "testUseast2Cluster",
+            "namespace": "testUseast2Namespace"
+          },
+          "uswest2": {
+            "serviceConnection": "testUswest2ServiceConnection",
+            "resourceGroupName": "testUswest2ResourceGroup",
+            "clusterName": "testUswest2Cluster",
+            "namespace": "testUswest2Namespace"
+          }
+        },
+        "plab": {
+          "useast2": {
+            "serviceConnection": "plabUseast2ServiceConnection",
+            "resourceGroupName": "plabUseast2ResourceGroup",
+            "clusterName": "plabUseast2Cluster",
+            "namespace": "plabUseast2Namespace"
+          },
+          "uswest2": {
+            "serviceConnection": "plabUswest2ServiceConnection",
+            "resourceGroupName": "plabUswest2ResourceGroup",
+            "clusterName": "plabUswest2Cluster",
+            "namespace": "plabUswest2Namespace"
+          }
+        },
+        "hf": {
+          "useast2": {
+            "serviceConnection": "hfUseast2ServiceConnection",
+            "resourceGroupName": "hfUseast2ResourceGroup",
+            "clusterName": "hfUseast2Cluster",
+            "namespace": "hfUseast2Namespace"
+          },
+          "uswest2": {
+            "serviceConnection": "hfUswest2ServiceConnection",
+            "resourceGroupName": "hfUswest2ResourceGroup",
+            "clusterName": "hfUswest2Cluster",
+            "namespace": "hfUswest2Namespace"
+          }
+        },
         "prod": {
           "useast2": {
-            "serviceConnection": "prodUseast2ServiceConnectionName",
+            "serviceConnection": "prodUseast2ServiceConnection",
             "resourceGroupName": "prodUseast2ResourceGroup",
-            "clusterName": "prodUseast2ClusterName",
+            "clusterName": "prodUseast2Cluster",
             "namespace": "prodUseast2Namespace"
           },
           "uswest2": {
-            "serviceConnection": "prodUswest2ServiceConnectionName",
+            "serviceConnection": "prodUswest2ServiceConnection",
             "resourceGroupName": "prodUswest2ResourceGroup",
-            "clusterName": "prodUswest2ClusterName",
+            "clusterName": "prodUswest2Cluster",
             "namespace": "prodUswest2Namespace"
-          }
-        },
-        "nonprod": {
-          "dev": {
-            "useast2": {
-              "serviceConnection": "devUseast2ServiceConnectionName",
-              "resourceGroupName": "devUseast2ResourceGroup",
-              "clusterName": "devUseast2ClusterName",
-              "namespace": "devUseast2Namespace"
-            },
-            "uswest2": {
-              "serviceConnection": "devUswest2ServiceConnectionName",
-              "resourceGroupName": "devUswest2ResourceGroup",
-              "clusterName": "devUswest2ClusterName",
-              "namespace": "devUswest2Namespace"
-            }
-          },
-          "test": {
-            "useast2": {
-              "serviceConnection": "testUseast2ServiceConnectionName",
-              "resourceGroupName": "testUseast2ResourceGroup",
-              "clusterName": "testUseast2ClusterName",
-              "namespace": "testUseast2Namespace"
-            },
-            "uswest2": {
-              "serviceConnection": "testUswest2ServiceConnectionName",
-              "resourceGroupName": "testUswest2ResourceGroup",
-              "clusterName": "testUswest2ClusterName",
-              "namespace": "testUswest2Namespace"
-            }
-          },
-          "plab": {
-            "useast2": {
-              "serviceConnection": "plabUseast2ServiceConnectionName",
-              "resourceGroupName": "plabUseast2ResourceGroup",
-              "clusterName": "plabUseast2ClusterName",
-              "namespace": "plabUseast2Namespace"
-            },
-            "uswest2": {
-              "serviceConnection": "plabUswest2ServiceConnectionName",
-              "resourceGroupName": "plabUswest2ResourceGroup",
-              "clusterName": "plabUswest2ClusterName",
-              "namespace": "plabUswest2Namespace"
-            }
-          },
-          "hf": {
-            "useast2": {
-              "serviceConnection": "hfUseast2ServiceConnectionName",
-              "resourceGroupName": "hfUseast2ResourceGroup",
-              "clusterName": "hfUseast2ClusterName",
-              "namespace": "hfUseast2Namespace"
-            },
-            "uswest2": {
-              "serviceConnection": "hfUswest2ServiceConnectionName",
-              "resourceGroupName": "hfUswest2ResourceGroup",
-              "clusterName": "hfUswest2ClusterName",
-              "namespace": "hfUswest2Namespace"
-            }
           }
         }
       }
   - name: environmentConfig
-    value: $[ variables['configuration'][parameters['environment']][parameters['subEnvironment']][parameters['cluster']] ]
+    value: $[ variables['configuration'][parameters['environment']][parameters['clusterRegion']] ]
 
 steps:
 - task: AzureCLI@2
@@ -130,7 +116,7 @@ steps:
       az aks get-credentials --resource-group $(environmentConfig.resourceGroupName) --name $(environmentConfig.clusterName) --overwrite-existing
       
       # Now, get the list of deployments with the specified label
-      DEPLOYMENTS=$(kubectl get deployments -n $(environmentConfig.namespace) -l ${{ parameters.label }} -o jsonpath='{.items[*].metadata.name}')
+      DEPLOYMENTS=$(kubectl get deployments -n $(environmentConfig.namespace) -l app=myapp -o jsonpath='{.items[*].metadata.name}')
 
       # Loop through the deployments and restart (bounce) each one
       for DEPLOYMENT in $DEPLOYMENTS; do
