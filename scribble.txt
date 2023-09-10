@@ -6,12 +6,12 @@ parameters:
   displayName: 'Select Environment'
   type: string
   values:
+  - prod
   - dev
   - test
   - plab
   - hf
-  - prod
-  default: dev
+  default: test
 
 - name: clusterRegion
   displayName: 'Select Cluster Region'
@@ -22,121 +22,151 @@ parameters:
   default: useast2
 
 variables:
-  - name: selectedEnvironment
-    value: ${{ parameters.environment }}
-  - name: selectedClusterRegion
-    value: ${{ parameters.clusterRegion }}
-  - name: configuration
-    value: |
-      {
-        "dev": {
-          "useast2": {
-            "serviceConnection": "devUseast2ServiceConnection",
-            "resourceGroupName": "devUseast2ResourceGroup",
-            "clusterName": "devUseast2Cluster",
-            "namespace": "devUseast2Namespace"
-          },
-          "uswest2": {
-            "serviceConnection": "devUswest2ServiceConnection",
-            "resourceGroupName": "devUswest2ResourceGroup",
-            "clusterName": "devUswest2Cluster",
-            "namespace": "devUswest2Namespace"
-          }
-        },
-        "test": {
-          "useast2": {
-            "serviceConnection": "25366-CricketOnline",
-            "resourceGroupName": "25366-eastus2-nprd-app-rg",
-            "clusterName": "ck-25366-eastus2-nprd-app-aks",
-            "namespace": "cwdigital-test"
-          },
-          "uswest2": {
-            "serviceConnection": "testUswest2ServiceConnection",
-            "resourceGroupName": "testUswest2ResourceGroup",
-            "clusterName": "testUswest2Cluster",
-            "namespace": "testUswest2Namespace"
-          }
-        },
-        "plab": {
-          "useast2": {
-            "serviceConnection": "plabUseast2ServiceConnection",
-            "resourceGroupName": "plabUseast2ResourceGroup",
-            "clusterName": "plabUseast2Cluster",
-            "namespace": "plabUseast2Namespace"
-          },
-          "uswest2": {
-            "serviceConnection": "plabUswest2ServiceConnection",
-            "resourceGroupName": "plabUswest2ResourceGroup",
-            "clusterName": "plabUswest2Cluster",
-            "namespace": "plabUswest2Namespace"
-          }
-        },
-        "hf": {
-          "useast2": {
-            "serviceConnection": "hfUseast2ServiceConnection",
-            "resourceGroupName": "hfUseast2ResourceGroup",
-            "clusterName": "hfUseast2Cluster",
-            "namespace": "hfUseast2Namespace"
-          },
-          "uswest2": {
-            "serviceConnection": "hfUswest2ServiceConnection",
-            "resourceGroupName": "hfUswest2ResourceGroup",
-            "clusterName": "hfUswest2Cluster",
-            "namespace": "hfUswest2Namespace"
-          }
-        },
-        "prod": {
-          "useast2": {
-            "serviceConnection": "prodUseast2ServiceConnection",
-            "resourceGroupName": "prodUseast2ResourceGroup",
-            "clusterName": "prodUseast2Cluster",
-            "namespace": "prodUseast2Namespace"
-          },
-          "uswest2": {
-            "serviceConnection": "prodUswest2ServiceConnection",
-            "resourceGroupName": "prodUswest2ResourceGroup",
-            "clusterName": "prodUswest2Cluster",
-            "namespace": "prodUswest2Namespace"
-          }
-        }
-      }
-  - name: environmentConfig
-    value: $[ variables['configuration'][variables['selectedEnvironment']][variables['selectedClusterRegion']] ]
+  - name: serviceConnection
+    value: ${{ 
+      if eq(parameters.environment, 'prod') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'ProdUSEast2ServiceConnection'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'ProdUSWest2ServiceConnection'
+      ${{ if eq(parameters.environment, 'dev') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'DevUSEast2ServiceConnection'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'DevUSWest2ServiceConnection'
+      ${{ if eq(parameters.environment, 'test') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'TestUSEast2ServiceConnection'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'TestUSWest2ServiceConnection'
+      ${{ if eq(parameters.environment, 'plab') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'PlabUSEast2ServiceConnection'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'PlabUSWest2ServiceConnection'
+      ${{ if eq(parameters.environment, 'hf') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'HfUSEast2ServiceConnection'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'HfUSWest2ServiceConnection'
+  - name: resourceGroupName
+    value: ${{ 
+      if eq(parameters.environment, 'prod') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'ProdUSEast2ResourceGroup'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'ProdUSWest2ResourceGroup'
+      ${{ if eq(parameters.environment, 'dev') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'DevUSEast2ResourceGroup'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'DevUSWest2ResourceGroup'
+      ${{ if eq(parameters.environment, 'test') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'TestUSEast2ResourceGroup'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'TestUSWest2ResourceGroup'
+      ${{ if eq(parameters.environment, 'plab') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'PlabUSEast2ResourceGroup'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'PlabUSWest2ResourceGroup'
+      ${{ if eq(parameters.environment, 'hf') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'HfUSEast2ResourceGroup'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'HfUSWest2ResourceGroup'
+  - name: clusterName
+    value: ${{ 
+      if eq(parameters.environment, 'prod') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'ProdUSEast2Cluster'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'ProdUSWest2Cluster'
+      ${{ if eq(parameters.environment, 'dev') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'DevUSEast2Cluster'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'DevUSWest2Cluster'
+      ${{ if eq(parameters.environment, 'test') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'TestUSEast2Cluster'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'TestUSWest2Cluster'
+      ${{ if eq(parameters.environment, 'plab') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'PlabUSEast2Cluster'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'PlabUSWest2Cluster'
+      ${{ if eq(parameters.environment, 'hf') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'HfUSEast2Cluster'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'HfUSWest2Cluster'
+  - name: namespace
+    value: ${{ 
+      if eq(parameters.environment, 'prod') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'ProdUSEast2Namespace'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'ProdUSWest2Namespace'
+      ${{ if eq(parameters.environment, 'dev') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'DevUSEast2Namespace'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'DevUSWest2Namespace'
+      ${{ if eq(parameters.environment, 'test') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'TestUSEast2Namespace'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'TestUSWest2Namespace'
+      ${{ if eq(parameters.environment, 'plab') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'PlabUSEast2Namespace'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'PlabUSWest2Namespace'
+      ${{ if eq(parameters.environment, 'hf') }}: 
+        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
+          'HfUSEast2Namespace'
+        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
+          'HfUSWest2Namespace'
 
 steps:
 - task: AzureCLI@2
   inputs:
-    azureSubscription: '$(environmentConfig.serviceConnection)'
+    azureSubscription: $(serviceConnection)
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Starting script execution..."
-      
+      echo "Selected environment: $(parameters.environment)"
+      echo "Selected cluster region: $(parameters.clusterRegion)"
+      echo "Service Connection: $(serviceConnection)"
+      echo "Resource Group Name: $(resourceGroupName)"
+      echo "Cluster Name: $(clusterName)"
+      echo "Namespace: $(namespace)"
+
       # Install kubelogin
-      echo "Installing kubelogin..."
       VERSION=$(curl --silent "https://api.github.com/repos/Azure/kubelogin/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
       wget https://github.com/Azure/kubelogin/releases/download/$VERSION/kubelogin-linux-amd64.zip
       unzip kubelogin-linux-amd64.zip
       sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
-      echo "Kubelogin installed successfully."
       
       # Get credentials for AKS cluster
-      echo "Getting credentials for AKS cluster..."
-      az aks get-credentials --resource-group $(environmentConfig.resourceGroupName) --name $(environmentConfig.clusterName) --overwrite-existing
-      echo "Credentials retrieved successfully."
+      az aks get-credentials --resource-group $(resourceGroupName) --name $(clusterName) --overwrite-existing
+      
+      # Set namespace
+      kubectl config set-context --current --namespace=$(namespace)
       
       # Now, get the list of deployments with the specified label
-      echo "Getting the list of deployments with the specified label..."
-      DEPLOYMENTS=$(kubectl get deployments -n $(environmentConfig.namespace) -l app=myapp -o jsonpath='{.items[*].metadata.name}')
-      echo "List of deployments retrieved: $DEPLOYMENTS"
+      DEPLOYMENTS=$(kubectl get deployments -l app=$(label) -o jsonpath='{.items[*].metadata.name}')
       
       # Loop through the deployments and restart (bounce) each one
-      echo "Restarting deployments..."
       for DEPLOYMENT in $DEPLOYMENTS; do
-        echo "Restarting deployment: $DEPLOYMENT"
-        kubectl rollout restart deployment/$DEPLOYMENT -n $(environmentConfig.namespace)
-        echo "Deployment $DEPLOYMENT restarted successfully."
+        kubectl rollout restart deployment/$DEPLOYMENT
+        echo "Restarted deployment: $DEPLOYMENT in namespace: $(namespace)"
       done
+  displayName: 'Run AZ CLI and kubectl commands'
+
       
-      echo "Script execution completed."
+      # Add the rest of your script here as needed
   displayName: 'Run AZ CLI and kubectl commands'
