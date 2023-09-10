@@ -1,23 +1,63 @@
 trigger:
 - main
 
+parameters:
+- name: environment
+  displayName: 'Select Environment'
+  type: string
+  values:
+  - prod
+  - nonprod
+  default: nonprod
+- name: label
+  displayName: 'Select Label'
+  type: string
+  default: 'app=myapp'
+
 pool:
   vmImage: 'ubuntu-latest'
+
+variables:
+  - name: configuration
+    value: |
+      {
+        "prod": {
+          "serviceConnection": "prodServiceConnectionName",
+          "resourceGroupName": "prodResourceGroup",
+          "clusterName": "prodClusterName",
+          "namespace": "prodNamespace"
+        },
+        "nonprod": {
+          "serviceConnection": "nonprodServiceConnectionName",
+          "resourceGroupName": "nonprodResourceGroup",
+          "clusterName": "nonprodClusterName",
+          "namespace": "nonprodNamespace"
+        }
+      }
+  - name: environmentConfig
+    value: $[ variables['configuration'][parameters['environment']] ]
 
 steps:
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'your-azure-subscription'
+    azureSubscription: '$(environmentConfig.serviceConnection)'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      # First, get the credentials for your AKS cluster
-      az aks get-credentials --resource-group yourResourceGroup --name yourClusterName
-
+      # Install kubelogin
+      VERSION=$(curl --silent "https://api.github.com/repos/Azure/kubelogin/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+      wget https://github.com/Azure/kubelogin/releases/download/$VERSION/kubelogin-linux-amd64.zip
+      unzip kubelogin-linux-amd64.zip
+      sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+      
+      # Get credentials for AKS cluster
+      az aks get-credentials --resource-group $(environmentConfig.resourceGroupName) --name $(environmentConfig.clusterName) --overwrite-existing
+      
       # Now, get the list of deployments with the specified label
-      DEPLOYMENTS=$(kubectl get deployments -l app=myapp -o jsonpath='{.items[*].metadata.name}')
+      DEPLOYMENTS=$(kubectl get deployments -n $(environmentConfig.namespace) -l ${{ parameters.label }} -o jsonpath='{.items[*].metadata.name}')
 
       # Loop through the deployments and restart (bounce) each one
       for DEPLOYMENT in $DEPLOYMENTS; do
-        kubectl rollout restart deployment/$DEPLOYMENT
+        kubectl rollout restart deployment/$DEPLOYMENT -n $(environmentConfig.namespace)
       done
+  displayName: 'Run AZ CLI and kubectl commands'
