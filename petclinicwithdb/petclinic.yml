@@ -1,0 +1,54 @@
+# Petclinic Kubernetes Configuration File (petclinic.yml)
+# This configuration file contains the Deployment and Service definitions needed to deploy the Petclinic application on a Kubernetes cluster.
+
+# Petclinic Deployment Configuration
+# Here, we define a Deployment for the Petclinic application, including environment variables, container commands and arguments.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petclinic-deployment  # The name of the deployment
+  labels:
+    app: petclinic  # The application label
+spec:
+  replicas: 1  # The number of replicas
+  selector:
+    matchLabels:
+      app: petclinic  # The label to match for pod selection
+  template:
+    metadata:
+      labels:
+        app: petclinic  # The label for the pod
+    spec:
+      containers:
+      - name: petclinic  # The container name
+        image: learnacrdemo.azurecr.io/petclinic:v1  # The image of the petclinic application 
+        env:
+        - name: MYSQL_URL  # The URL for the MySQL database
+          value: "jdbc:mysql://mysql-service:3306/petclinic?useUnicode=true"
+        - name: MYSQL_USER  # MySQL user environment variable
+          value: "petclinic"
+        - name: MYSQL_PASS  # MySQL password environment variable
+          value: "petclinic"
+        - name: SPRING_PROFILES_ACTIVE  # Spring active profile environment variable
+          value: mysql
+        ports:
+        - containerPort: 8080  # The port that the petclinic application will run on
+        command: ["/bin/sh"]  # The command to execute in the container
+        args: ["-c", "apt update -y && apt install openjdk-17-jdk -y && /usr/lib/jvm/java-17-openjdk-amd64/bin/java -jar -jar app.jar"]  # The arguments for the command
+      imagePullSecrets:
+      - name: acr-secret  # The secret to pull the image from the Azure Container Registry
+
+# Petclinic Service Configuration
+# Here, we define a Service to expose the Petclinic application to external traffic.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: petclinic-service  # The name of the service
+spec:
+  type: LoadBalancer  # The type of service, to expose it to external traffic
+  ports:
+    - port: 8080  # The port that the service will expose
+  selector:
+    app: petclinic  # The label to select the Petclinic pods

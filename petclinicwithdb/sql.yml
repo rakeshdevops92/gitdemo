@@ -1,0 +1,94 @@
+# MySQL Kubernetes Configuration File (sql.yml)
+# This configuration file contains the definitions for the Persistent Volumes, Persistent Volume Claims, Deployment, and Service needed to deploy a MySQL database on a Kubernetes cluster.
+
+# Persistent Volume Configuration
+# Here, we define a Persistent Volume with a size of 10Gi, a local storage type, and a specific storage class name.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv  # The name of the persistent volume
+  labels:
+    type: local  # The type label, used for selection
+spec:
+  storageClassName: manual  # The storage class name
+  capacity:
+    storage: 10Gi  # The storage capacity
+  accessModes:
+    - ReadWriteOnce  # The access mode
+  hostPath:
+    path: "/mnt/data"  # The host path to store the data
+
+# Persistent Volume Claim Configuration
+# Here, we define a Persistent Volume Claim to claim the storage from the Persistent Volume defined above.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc  # The name of the persistent volume claim
+spec:
+  storageClassName: manual  # The storage class name
+  accessModes:
+    - ReadWriteOnce  # The access mode
+  resources:
+    requests:
+      storage: 10Gi  # The storage request
+  selector:
+    matchLabels:
+      type: local  # The label to match the Persistent Volume
+
+# MySQL Deployment Configuration
+# In this section, we define a Deployment for the MySQL database, including environment variables and volume mounts.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment  # The name of the deployment
+  labels:
+    app: mysql  # The application label
+spec:
+  replicas: 1  # The number of replicas
+  selector:
+    matchLabels:
+      app: mysql  # The label to match for pod selection
+  template:
+    metadata:
+      labels:
+        app: mysql  # The label for the pod
+    spec:
+      containers:
+      - name: mysql  # The container name
+        image: mysql:8.0  # The MySQL image version
+        env:
+        - name: MYSQL_ROOT_PASSWORD  # The root password environment variable
+          value: "root"
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD  # Allow empty password option
+          value: "true"
+        - name: MYSQL_USER  # MySQL user environment variable
+          value: "petclinic"
+        - name: MYSQL_PASSWORD  # MySQL user password
+          value: "petclinic"
+        - name: MYSQL_DATABASE  # MySQL database name
+          value: "petclinic"
+        ports:
+        - containerPort: 3306  # MySQL port
+        volumeMounts:
+        - name: mysql-data  # The volume name
+          mountPath: /var/lib/mysql  # The mount path inside the container
+      volumes:
+      - name: mysql-data  # The volume name
+        persistentVolumeClaim:
+          claimName: mysql-pvc  # The name of the Persistent Volume Claim
+
+# MySQL Service Configuration
+# In this section, we define a Service to expose the MySQL database to other services in the cluster.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service  # The name of the service
+spec:
+  ports:
+    - port: 3306  # The port that the service will expose
+  selector:
+    app: mysql  # The label to select the MySQL pods
