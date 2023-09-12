@@ -1,0 +1,16 @@
+# mysql-client-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-client-pod
+spec:
+  containers:
+  - name: mysql-client
+    image: mysql:8
+    command: ["/bin/bash", "-c"]
+    args:
+      - |
+        apt update && apt install -y mysql-client
+        mysql -h mysql-service -P 3306 -u petclinic -p petclinic -D petclinic
+    tty: true
+  restartPolicy: Never
