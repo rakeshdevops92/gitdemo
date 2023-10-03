@@ -1,172 +1,24 @@
 trigger:
 - main
 
-parameters:
-- name: environment
-  displayName: 'Select Environment'
-  type: string
-  values:
-  - prod
-  - dev
-  - test
-  - plab
-  - hf
-  default: test
-
-- name: clusterRegion
-  displayName: 'Select Cluster Region'
-  type: string
-  values:
-  - useast2
-  - uswest2
-  default: useast2
+pool:
+  vmImage: 'ubuntu-latest'
 
 variables:
-  - name: serviceConnection
-    value: ${{ 
-      if eq(parameters.environment, 'prod') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'ProdUSEast2ServiceConnection'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'ProdUSWest2ServiceConnection'
-      ${{ if eq(parameters.environment, 'dev') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'DevUSEast2ServiceConnection'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'DevUSWest2ServiceConnection'
-      ${{ if eq(parameters.environment, 'test') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'TestUSEast2ServiceConnection'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'TestUSWest2ServiceConnection'
-      ${{ if eq(parameters.environment, 'plab') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'PlabUSEast2ServiceConnection'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'PlabUSWest2ServiceConnection'
-      ${{ if eq(parameters.environment, 'hf') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'HfUSEast2ServiceConnection'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'HfUSWest2ServiceConnection'
-  - name: resourceGroupName
-    value: ${{ 
-      if eq(parameters.environment, 'prod') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'ProdUSEast2ResourceGroup'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'ProdUSWest2ResourceGroup'
-      ${{ if eq(parameters.environment, 'dev') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'DevUSEast2ResourceGroup'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'DevUSWest2ResourceGroup'
-      ${{ if eq(parameters.environment, 'test') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'TestUSEast2ResourceGroup'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'TestUSWest2ResourceGroup'
-      ${{ if eq(parameters.environment, 'plab') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'PlabUSEast2ResourceGroup'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'PlabUSWest2ResourceGroup'
-      ${{ if eq(parameters.environment, 'hf') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'HfUSEast2ResourceGroup'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'HfUSWest2ResourceGroup'
-  - name: clusterName
-    value: ${{ 
-      if eq(parameters.environment, 'prod') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'ProdUSEast2Cluster'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'ProdUSWest2Cluster'
-      ${{ if eq(parameters.environment, 'dev') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'DevUSEast2Cluster'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'DevUSWest2Cluster'
-      ${{ if eq(parameters.environment, 'test') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'TestUSEast2Cluster'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'TestUSWest2Cluster'
-      ${{ if eq(parameters.environment, 'plab') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'PlabUSEast2Cluster'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'PlabUSWest2Cluster'
-      ${{ if eq(parameters.environment, 'hf') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'HfUSEast2Cluster'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'HfUSWest2Cluster'
-  - name: namespace
-    value: ${{ 
-      if eq(parameters.environment, 'prod') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'ProdUSEast2Namespace'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'ProdUSWest2Namespace'
-      ${{ if eq(parameters.environment, 'dev') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'DevUSEast2Namespace'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'DevUSWest2Namespace'
-      ${{ if eq(parameters.environment, 'test') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'TestUSEast2Namespace'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'TestUSWest2Namespace'
-      ${{ if eq(parameters.environment, 'plab') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'PlabUSEast2Namespace'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'PlabUSWest2Namespace'
-      ${{ if eq(parameters.environment, 'hf') }}: 
-        ${{ if eq(parameters.clusterRegion, 'useast2') }}: 
-          'HfUSEast2Namespace'
-        ${{ if eq(parameters.clusterRegion, 'uswest2') }}: 
-          'HfUSWest2Namespace'
+  retentionDays: 30  # Change as per your requirement.
 
 steps:
 - task: AzureCLI@2
+  displayName: 'Clean ACR Images'
   inputs:
-    azureSubscription: $(serviceConnection)
+    azureSubscription: '<Your-Azure-Subscription>'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Selected environment: $(parameters.environment)"
-      echo "Selected cluster region: $(parameters.clusterRegion)"
-      echo "Service Connection: $(serviceConnection)"
-      echo "Resource Group Name: $(resourceGroupName)"
-      echo "Cluster Name: $(clusterName)"
-      echo "Namespace: $(namespace)"
-
-      # Install kubelogin
-      VERSION=$(curl --silent "https://api.github.com/repos/Azure/kubelogin/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-      wget https://github.com/Azure/kubelogin/releases/download/$VERSION/kubelogin-linux-amd64.zip
-      unzip kubelogin-linux-amd64.zip
-      sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+      registry=<Your-Registry>
+      image=<Your-Image-Name>
+      servicePrincipalId=<Your-Service-Principal-Id>
+      retentionTime=$(date -d "-${{ variables.retentionDays }} days" --utc +%Y-%m-%dT%H:%M:%SZ)
       
-      # Get credentials for AKS cluster
-      az aks get-credentials --resource-group $(resourceGroupName) --name $(clusterName) --overwrite-existing
-      
-      # Set namespace
-      kubectl config set-context --current --namespace=$(namespace)
-      
-      # Now, get the list of deployments with the specified label
-      DEPLOYMENTS=$(kubectl get deployments -l app=$(label) -o jsonpath='{.items[*].metadata.name}')
-      
-      # Loop through the deployments and restart (bounce) each one
-      for DEPLOYMENT in $DEPLOYMENTS; do
-        kubectl rollout restart deployment/$DEPLOYMENT
-        echo "Restarted deployment: $DEPLOYMENT in namespace: $(namespace)"
-      done
-  displayName: 'Run AZ CLI and kubectl commands'
-
-      
-      # Add the rest of your script here as needed
-  displayName: 'Run AZ CLI and kubectl commands'
+      echo "Purging images older than $retentionTime from $registry/$image"
+      acr-purge --registry $registry --image $image --ago $retentionTime --service-principal-id $servicePrincipalId
