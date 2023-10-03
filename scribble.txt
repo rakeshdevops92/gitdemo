@@ -5,20 +5,35 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  retentionDays: 30  # Change as per your requirement.
+  retentionDays: 365  
+  registry: 'YourRegistryName' # Specify your ACR name here
 
 steps:
 - task: AzureCLI@2
-  displayName: 'Clean ACR Images'
+  displayName: 'Clean ACR Images from $(registry)'
   inputs:
-    azureSubscription: '<Your-Azure-Subscription>'
+    azureSubscription: '<Your-Azure-Subscription>' # Specify your Azure subscription here
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      registry=<Your-Registry>
-      image=<Your-Image-Name>
-      servicePrincipalId=<Your-Service-Principal-Id>
-      retentionTime=$(date -d "-${{ variables.retentionDays }} days" --utc +%Y-%m-%dT%H:%M:%SZ)
+      # Get all repositories in the ACR
+      repositories=$(az acr repository list --name $(registry) --output tsv)
       
-      echo "Purging images older than $retentionTime from $registry/$image"
-      acr-purge --registry $registry --image $image --ago $retentionTime --service-principal-id $servicePrincipalId
+      # Set the time limit
+      retentionTime=$(date -d "-${variables.retentionDays} days" --utc +%Y-%m-%dT%H:%M:%SZ)
+
+      echo "Purging images older than $retentionTime from $(registry)"
+
+      for repo in $repositories
+      do
+        echo "Reviewing repository $repo"
+        
+        # Get all images in the repository
+        images=$(az acr repository show-manifests --name $(registry) --repository $repo --output tsv --query "[?timestamp < '$retentionTime'].[digest]")
+
+        for image in $images
+        do
+          echo "Deleting image $image from repository $repo"
+          az acr repository delete --name $(registry) --image $repo@$image --yes
+        done
+      done
