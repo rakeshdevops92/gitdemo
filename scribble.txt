@@ -16,34 +16,13 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      # Get all repositories in the ACR
-      repositories=$(az acr repository list --name $(registry) --output tsv)
+      # Calculate the date for image retention
+      retentionTime="${{ variables.retentionDays }}d"
+
+      # Construct the purge command
+      PURGE_CMD="acr purge --filter '.*:.*' --untagged --ago $retentionTime"
       
-      # Set the time limit
-      retentionTime=$(date -d "-${variables.retentionDays} days" +%s) # Epoch time
-      
-      echo "Purging images older than $retentionTime from $(registry)"
-      
-      for repo in $repositories
-      do
-        echo "Reviewing repository $repo"
-        
-        # Get all tags in the repository
-        tags=$(az acr repository show-tags --name $(registry) --repository $repo --output tsv --orderby time_desc)
-        
-        for tag in $tags
-        do
-          # Get creation time of the image
-          imageCreationTime=$(az acr repository show --name $(registry) --image $repo:$tag --query 'createdTime' --output tsv)
-          
-          # Convert creation time to epoch for comparison
-          imageCreationTimeEpoch=$(date -d "$imageCreationTime" +%s)
-          
-          # Compare times
-          if [ $imageCreationTimeEpoch -lt $retentionTime ]
-          then
-            echo "Deleting image $repo:$tag"
-            az acr repository delete --name $(registry) --image $repo:$tag --yes
-          fi
-        done
-      done
+      echo "Purging untagged images and images older than $retentionTime from $(registry)"
+
+      # Run the purge command in the ACR
+      az acr run --cmd "$PURGE_CMD" --registry $(registry) /dev/null
