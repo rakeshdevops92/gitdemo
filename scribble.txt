@@ -1,28 +1,79 @@
-trigger:
-- main
+Dockerfile
+---------------------------
 
-pool:
-  vmImage: 'ubuntu-latest'
+FROM openjdk:11-jre-slim
+ARG JAR_FILE="spring-boot-complete-0.0.1-SNAPSHOT.jar"
 
-variables:
-  retentionDays: 365  
-  registry: 'YourRegistryName' # Specify your ACR name here
+COPY otel-agent-config.yml /usr/app/otel-agent-config.yml
+COPY opentelemetry-javaagent.jar /usr/app/opentelemetry-javaagent.jar
+COPY ${JAR_FILE} /usr/app/app.jar
 
-steps:
-- task: AzureCLI@2
-  displayName: 'Clean ACR Images from $(registry)'
-  inputs:
-    azureSubscription: '<Your-Azure-Subscription>' # Specify your Azure subscription here
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      # Calculate the date for image retention
-      retentionTime="${{ variables.retentionDays }}d"
+ENTRYPOINT ["java", "-javaagent:/usr/app/opentelemetry-javaagent.jar", "-Dotel.service.name=springapp", "-Dotel.config=/usr/app/otel-agent-config.yml", "-jar", "/usr/app/app.jar"]
 
-      # Construct the purge command
-      PURGE_CMD="acr purge --filter '.*:.*' --untagged --ago $retentionTime"
-      
-      echo "Purging untagged images and images older than $retentionTime from $(registry)"
 
-      # Run the purge command in the ACR
-      az acr run --cmd "$PURGE_CMD" --registry $(registry) /dev/null
+deployment.yml
+-------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springapp-deployment
+  labels:
+    app: springapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: springapp
+  template:
+    metadata:
+      labels:
+        app: springapp
+    spec:
+      containers:
+      - name: springapp
+        image: learnacrdemo.azurecr.io/springapp:v1 
+        ports:
+        - containerPort: 8080
+        command: ["/bin/sh"]
+        args: ["-c", "apt update -y && apt install -y openjdk-17-jdk  && /usr/lib/jvm/java-17-openjdk-amd64/bin/java -javaagent:/usr/app/opentelemetry-javaagent.jar -Dotel.service.name=springapp -Dotel.config=/usr/app/otel-agent-config.yaml -jar /usr/app/app.jar"]
+      imagePullSecrets:
+      - name: acr-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: springapp-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+  selector:
+    app: springapp
+
+
+
+
+otel-agent-config.yaml
+---------------------------
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+  # Additional processors can be added based on your requirements
+
+exporters:
+  azuremonitor:
+    instrumentation_key: "ceb924f0-7753-41a8-82bc-95527fb35e8a"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuremonitor]
+
