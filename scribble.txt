@@ -1,79 +1,66 @@
-Dockerfile
----------------------------
-
-FROM openjdk:11-jre-slim
-ARG JAR_FILE="spring-boot-complete-0.0.1-SNAPSHOT.jar"
-
-COPY otel-agent-config.yml /usr/app/otel-agent-config.yml
-COPY opentelemetry-javaagent.jar /usr/app/opentelemetry-javaagent.jar
-COPY ${JAR_FILE} /usr/app/app.jar
-
-ENTRYPOINT ["java", "-javaagent:/usr/app/opentelemetry-javaagent.jar", "-Dotel.service.name=springapp", "-Dotel.config=/usr/app/otel-agent-config.yml", "-jar", "/usr/app/app.jar"]
-
-
-deployment.yml
--------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: springapp-deployment
-  labels:
-    app: springapp
+  name: collector
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: springapp
+      app: collector
   template:
     metadata:
       labels:
-        app: springapp
+        app: collector
     spec:
       containers:
-      - name: springapp
-        image: learnacrdemo.azurecr.io/springapp:v1 
+      - name: collector
+        image: otel/opentelemetry-collector-contrib:0.87.0
+        args:
+          - "--config=/otel-config.yaml"
         ports:
-        - containerPort: 8080
-        command: ["/bin/sh"]
-        args: ["-c", "apt update -y && apt install -y openjdk-17-jdk  && /usr/lib/jvm/java-17-openjdk-amd64/bin/java -javaagent:/usr/app/opentelemetry-javaagent.jar -Dotel.service.name=springapp -Dotel.config=/usr/app/otel-agent-config.yaml -jar /usr/app/app.jar"]
-      imagePullSecrets:
-      - name: acr-secret
+        - containerPort: 4317
+        volumeMounts:
+        - name: otel-config-volume
+          mountPath: /otel-config.yaml
+          subPath: otel-config.yaml
+      volumes:
+      - name: otel-config-volume
+        configMap:
+          name: otel-config
+      restartPolicy: Always
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: springapp-service
+  name: collector
 spec:
-  type: LoadBalancer
-  ports:
-    - port: 8080
   selector:
-    app: springapp
+    app: collector
+  ports:
+    - protocol: TCP
+      port: 4317
+      targetPort: 4317
 
-
-
-
-otel-agent-config.yaml
----------------------------
-receivers:
-  otlp:
-    protocols:
-      grpc:
-      http:
-
-processors:
-  batch:
-  # Additional processors can be added based on your requirements
-
-exporters:
-  azuremonitor:
-    instrumentation_key: "ceb924f0-7753-41a8-82bc-95527fb35e8a"
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [azuremonitor]
-
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-config
+data:
+  otel-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+    exporters:
+      azuremonitor:
+        instrumentation_key: ceb924f0-7753-41a8-82bc-95527fb35e8a
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [azuremonitor]
+        metrics:
+          receivers: [otlp]
+          exporters: [azuremonitor]
