@@ -1,63 +1,31 @@
+function Update-JsonFile {
+    param (
+        [string]$FileName,
+        [string]$ChannelType,
+        [string]$NewClientId,
+        [string]$NewClientSecret
+    )
 
-### Instrumenting Java Spring Boot Application for Azure Monitor using OpenTelemetry and Deploying to AKS:
+    # Read the JSON content from the file and convert it to a PowerShell object
+    $jsonData = Get-Content -Path $FileName | ConvertFrom-Json
 
-#### 1. Prerequisites:
+    # Traverse through the 'AccountSettings' array and update the specified fields
+    $jsonData.AccountSettings | ForEach-Object {
+        if ($_.CustomizationKey -eq 'Rogers') {
+            foreach ($channel in $_.Channels) {
+                if ($channel.ChannelType -eq $ChannelType) {
+                    $channel.ClientId = $NewClientId
+                    $channel.ClientSecret = $NewClientSecret
+                }
+            }
+        }
+    }
 
-- A Java Spring Boot application.
-- AKS (Azure Kubernetes Service) cluster set up.
-- Azure CLI or Kubernetes CLI (`kubectl`).
+    # Convert the updated PowerShell object back to JSON format with a higher depth
+    $jsonOutput = $jsonData | ConvertTo-Json -Depth 20
 
-#### 2. Set Up OpenTelemetry Collector:
+    # Save the updated JSON content back to the original file
+    Set-Content -Path $FileName -Value $jsonOutput
+}
 
-Azure Monitor doesn't support OTLP (OpenTelemetry Line Protocol) directly. Thus, you'll need the OpenTelemetry Collector to convert OTLP to a format supported by Azure Monitor.
-
-- **Create a ConfigMap** for the OpenTelemetry Collector with configurations for OTLP receivers and the Azure Monitor exporter.
-
-  ```yaml
-  # otel-collector-config.yaml
-  receivers:
-    otlp:
-      protocols:
-        grpc:
-
-  exporters:
-    azuremonitor:
-      instrumentation_key: YOUR_INSTRUMENTATION_KEY
-
-  service:
-    pipelines:
-      traces:
-        receivers: [otlp]
-        exporters: [azuremonitor]
-      metrics:
-        receivers: [otlp]
-        exporters: [azuremonitor]
-  ```
-
-- Deploy the OpenTelemetry Collector to AKS:
-
-  If you're using Helm, there are Helm charts available for the OpenTelemetry Collector. Modify the values to suit your configuration and deploy.
-
-#### 3. Instrument Your Spring Boot Application:
-
-- As previously described, download and use the OpenTelemetry Java Agent with your application.
-
-- Set the endpoint for the telemetry data to your collector service within AKS:
-
-  ```bash
-  -Dotel.exporter.otlp.endpoint=http://otel-collector-service:4317
-  ```
-
-#### 4. Deploy Your Instrumented Application to AKS:
-
-Ensure your Kubernetes deployment YAML for your application includes the necessary configurations and environment variables. It should reference the Java Agent and OpenTelemetry configurations.
-
-#### 5. Test and Monitor:
-
-- After deploying, interact with your application to generate some telemetry data.
-
-- Go to Azure Portal > Application Insights > Monitor > Logs. Check if telemetry data is being received.
-
-- You should see traces, metrics, and other telemetry data in Application Insights.
-
----
+Update-JsonFile -FileName 'test.json' -ChannelType 'External' -NewClientId '000' -NewClientSecret '453335'
