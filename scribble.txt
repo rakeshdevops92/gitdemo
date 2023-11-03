@@ -1,31 +1,40 @@
-function Update-JsonFile {
-    param (
-        [string]$FileName,
-        [string]$ChannelType,
-        [string]$NewClientId,
-        [string]$NewClientSecret
-    )
+trigger:
+- main  # Assumes the pipeline should run on pushes to the 'main' branch
 
-    # Read the JSON content from the file and convert it to a PowerShell object
-    $jsonData = Get-Content -Path $FileName | ConvertFrom-Json
+pool:
+  vmImage: 'ubuntu-latest'  # Defines the build agent type
 
-    # Traverse through the 'AccountSettings' array and update the specified fields
-    $jsonData.AccountSettings | ForEach-Object {
-        if ($_.CustomizationKey -eq 'Rogers') {
-            foreach ($channel in $_.Channels) {
-                if ($channel.ChannelType -eq $ChannelType) {
-                    $channel.ClientId = $NewClientId
-                    $channel.ClientSecret = $NewClientSecret
-                }
-            }
-        }
-    }
+variables:
+  # Define any variables here
+  namespace: 'your-namespace'
+  helmChartPath: 'collector-chart'  # Path to your Helm chart directory
+  clusterServiceConnection: 'YourAKSClusterServiceConnectionName'
 
-    # Convert the updated PowerShell object back to JSON format with a higher depth
-    $jsonOutput = $jsonData | ConvertTo-Json -Depth 20
+stages:
+- stage: Deploy
+  jobs:
+  - job: DeployJob
+    steps:
+    - task: HelmInstaller@1
+      inputs:
+        helmVersionToInstall: 'latest'
 
-    # Save the updated JSON content back to the original file
-    Set-Content -Path $FileName -Value $jsonOutput
-}
+    - task: Kubernetes@1
+      displayName: 'Helm init'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(clusterServiceConnection)'
+        command: 'helm'
+        arguments: 'init --client-only'
 
-Update-JsonFile -FileName 'test.json' -ChannelType 'External' -NewClientId '000' -NewClientSecret '453335'
+    - task: HelmDeploy@0
+      displayName: 'Helm deploy collector'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceConnection: '$(clusterServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: '$(helmChartPath)'
+        install: true
+        waitForExecution: true
