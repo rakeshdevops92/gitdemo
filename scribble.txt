@@ -1,40 +1,50 @@
 trigger:
-- main  # Assumes the pipeline should run on pushes to the 'main' branch
+- main
 
 pool:
-  vmImage: 'ubuntu-latest'  # Defines the build agent type
+  vmImage: 'ubuntu-latest'
 
 variables:
-  # Define any variables here
-  namespace: 'your-namespace'
-  helmChartPath: 'collector-chart'  # Path to your Helm chart directory
-  clusterServiceConnection: 'YourAKSClusterServiceConnectionName'
+  # Update these variables
+  terraformWorkingDirectory: '$(Build.SourcesDirectory)/terraform'
+  backendStorageAccountName: '<Your Storage Account Name>'
+  backendContainerName: '<Your Storage Container Name>'
+  backendKey: '<Your Terraform State File Name>'
+  serviceConnection: '<Your Azure Service Connection Name>'
 
-stages:
-- stage: Deploy
-  jobs:
-  - job: DeployJob
-    steps:
-    - task: HelmInstaller@1
-      inputs:
-        helmVersionToInstall: 'latest'
+steps:
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '1.0.0'
 
-    - task: Kubernetes@1
-      displayName: 'Helm init'
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: '$(clusterServiceConnection)'
-        command: 'helm'
-        arguments: 'init --client-only'
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '$(terraformWorkingDirectory)'
+    backendServiceArm: '$(serviceConnection)'
+    backendAzureRmResourceGroupName: '<Your Resource Group Name>'
+    backendAzureRmStorageAccountName: '$(backendStorageAccountName)'
+    backendAzureRmContainerName: '$(backendContainerName)'
+    backendAzureRmKey: '$(backendKey)'
 
-    - task: HelmDeploy@0
-      displayName: 'Helm deploy collector'
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceConnection: '$(clusterServiceConnection)'
-        namespace: '$(namespace)'
-        command: 'upgrade'
-        chartType: 'FilePath'
-        chartPath: '$(helmChartPath)'
-        install: true
-        waitForExecution: true
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
+    workingDirectory: '$(terraformWorkingDirectory)'
+    
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    workingDirectory: '$(terraformWorkingDirectory)'
+    environmentServiceNameAzureRM: '$(serviceConnection)'
+
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    workingDirectory: '$(terraformWorkingDirectory)'
+    environmentServiceNameAzureRM: '$(serviceConnection)'
+    commandOptions: '-auto-approve'
