@@ -1,50 +1,51 @@
-trigger:
-- main
+trigger: none
 
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  # Update these variables
-  terraformWorkingDirectory: '$(Build.SourcesDirectory)/terraform'
-  backendStorageAccountName: '<Your Storage Account Name>'
-  backendContainerName: '<Your Storage Container Name>'
-  backendKey: '<Your Terraform State File Name>'
-  serviceConnection: '<Your Azure Service Connection Name>'
+variables: 
+  terraformWorkingDirectory: '$(Build.SourcesDirectory)'
+  backendStorageAccountName: 'stgacterraformstate'
+  backendContainerName: 'terraform'
+  backendKey: 'terraform.tfstate'
+  backendResourceGroup: 'TFStateRg'
+  serviceConnection: 'global-digital-euw-app-nova-dev'
 
 steps:
 - task: TerraformInstaller@0
+  displayName: 'Install Terraform'
   inputs:
-    terraformVersion: '1.0.0'
+    terraformVersion: 'latest'
 
-- task: TerraformTaskV1@0
+- task: TerraformCLI@0
+  displayName: 'Terraform Init'
   inputs:
-    provider: 'azurerm'
     command: 'init'
     workingDirectory: '$(terraformWorkingDirectory)'
+    backendType: 'azurerm'
     backendServiceArm: '$(serviceConnection)'
-    backendAzureRmResourceGroupName: '<Your Resource Group Name>'
+    backendAzureRmResourceGroupName: '$(backendResourceGroup)'
     backendAzureRmStorageAccountName: '$(backendStorageAccountName)'
     backendAzureRmContainerName: '$(backendContainerName)'
     backendAzureRmKey: '$(backendKey)'
 
-- task: TerraformTaskV1@0
+- task: TerraformCLI@0
+  displayName: 'Terraform Validate'
   inputs:
-    provider: 'azurerm'
     command: 'validate'
     workingDirectory: '$(terraformWorkingDirectory)'
-    
-- task: TerraformTaskV1@0
+
+- task: TerraformCLI@0
+  displayName: 'Terraform Plan'
   inputs:
-    provider: 'azurerm'
     command: 'plan'
     workingDirectory: '$(terraformWorkingDirectory)'
-    environmentServiceNameAzureRM: '$(serviceConnection)'
+    environmentServiceName: '$(serviceConnection)'
 
-- task: TerraformTaskV1@0
+- task: TerraformCLI@0
+  displayName: 'Terraform Apply'
   inputs:
-    provider: 'azurerm'
     command: 'apply'
     workingDirectory: '$(terraformWorkingDirectory)'
-    environmentServiceNameAzureRM: '$(serviceConnection)'
+    environmentServiceName: '$(serviceConnection)'
     commandOptions: '-auto-approve'
