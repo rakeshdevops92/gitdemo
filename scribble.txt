@@ -43,4 +43,10 @@ $openPRs = Get-OpenPRs
 
 foreach ($pr in $openPRs) {
     if ($pr.mergeable -eq $true -and $pr.labels.name -contains $labelToRemove) {
-        Write-Host "PR #$($pr.number) is mergeable. Attempting to remove
+        Write-Host "PR #$($pr.number) is mergeable. Attempting to remove label..."
+        Remove-Label -prNumber $pr.number
+    }
+    else {
+        Write-Host "PR #$($pr.number) does not meet criteria for label removal."
+    }
+}
