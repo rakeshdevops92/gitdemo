@@ -1,51 +1,46 @@
-trigger: none
+# Variables
+$owner = "yourGitHubUsername" # Replace with your GitHub username or organization name
+$repo = "yourRepoName" # Replace with your repository name
+$token = "yourPersonalAccessToken" # Replace with your GitHub personal access token
+$labelToRemove = "merge-conflict"
 
-pool:
-  vmImage: 'ubuntu-latest'
+# Base64 encode the GitHub Personal Access Token
+$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token"))
 
-variables: 
-  terraformWorkingDirectory: '$(Build.SourcesDirectory)'
-  backendStorageAccountName: 'stgacterraformstate'
-  backendContainerName: 'terraform'
-  backendKey: 'terraform.tfstate'
-  backendResourceGroup: 'TFStateRg'
-  serviceConnection: 'global-digital-euw-app-nova-dev'
+# Function to get all open PRs
+function Get-OpenPRs {
+    $prApiUrl = "https://api.github.com/repos/$owner/$repo/pulls?state=open"
+    $headers = @{
+        Authorization = "Basic $base64AuthInfo"
+        "User-Agent" = "PowerShell Script"
+    }
 
-steps:
-- task: TerraformInstaller@0
-  displayName: 'Install Terraform'
-  inputs:
-    terraformVersion: 'latest'
+    $prs = Invoke-RestMethod -Uri $prApiUrl -Method Get -Headers $headers
+    return $prs
+}
 
-- task: TerraformCLI@0
-  displayName: 'Terraform Init'
-  inputs:
-    command: 'init'
-    workingDirectory: '$(terraformWorkingDirectory)'
-    backendType: 'azurerm'
-    backendServiceArm: '$(serviceConnection)'
-    backendAzureRmResourceGroupName: '$(backendResourceGroup)'
-    backendAzureRmStorageAccountName: '$(backendStorageAccountName)'
-    backendAzureRmContainerName: '$(backendContainerName)'
-    backendAzureRmKey: '$(backendKey)'
+# Function to remove a label
+function Remove-Label {
+    param (
+        $prNumber
+    )
+    $labelApiUrl = "https://api.github.com/repos/$owner/$repo/issues/$prNumber/labels/$labelToRemove"
+    $headers = @{
+        Authorization = "Basic $base64AuthInfo"
+        "User-Agent" = "PowerShell Script"
+    }
 
-- task: TerraformCLI@0
-  displayName: 'Terraform Validate'
-  inputs:
-    command: 'validate'
-    workingDirectory: '$(terraformWorkingDirectory)'
+    try {
+        Invoke-RestMethod -Uri $labelApiUrl -Method Delete -Headers $headers
+        Write-Host "Label '$labelToRemove' successfully removed from PR #$prNumber."
+    } catch {
+        Write-Error "Failed to remove label from PR #$prNumber. Error: $_"
+    }
+}
 
-- task: TerraformCLI@0
-  displayName: 'Terraform Plan'
-  inputs:
-    command: 'plan'
-    workingDirectory: '$(terraformWorkingDirectory)'
-    environmentServiceName: '$(serviceConnection)'
+# Main script logic
+$openPRs = Get-OpenPRs
 
-- task: TerraformCLI@0
-  displayName: 'Terraform Apply'
-  inputs:
-    command: 'apply'
-    workingDirectory: '$(terraformWorkingDirectory)'
-    environmentServiceName: '$(serviceConnection)'
-    commandOptions: '-auto-approve'
+foreach ($pr in $openPRs) {
+    if ($pr.mergeable -eq $true -and $pr.labels.name -contains $labelToRemove) {
+        Write-Host "PR #$($pr.number) is mergeable. Attempting to remove
