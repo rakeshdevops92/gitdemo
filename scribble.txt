@@ -1,21 +1,28 @@
-$pullDetails = Invoke-RestMethod -Uri $pull.url -Method get -Header @{Authorization = "Basic $base64AuthInfo"} -ContentType "application/vnd.github.v3+json" -ErrorAction Stop
-    $prNumber = $pullDetails.number
-    $mergeablestate = $pullDetails.mergeable_state | Out-String
-    $labels = $pullDetails.labels | ForEach-Object { $_.name } # Fetch all label names for the PR
-
-    # Check if PR has the 'Merge Conflict' label
-    if ('Merge Conflict' -in $labels) {
-        Write-Host "PR #$prNumber has 'Merge Conflict' label."
-
-        # Further actions based on mergeable state
-        if ($mergeablestate -notmatch 'dirty') {
-            # If PR is not dirty (no merge conflicts), attempt to remove the 'Merge Conflict' label
-            $labelUrl = $pullDetails.issue_url + "/labels/Merge%20Conflict" # The label name must be URL encoded
-            Write-Host "PR #$prNumber does not have merge conflicts. Attempting to remove 'Merge Conflict' label."
-            Invoke-RestMethod -Uri $labelUrl -Method Delete -Header @{Authorization = "Basic $base64AuthInfo"} -ContentType "application/vnd.github.v3+json" -ErrorAction SilentlyContinue
-        } else {
-            Write-Host "PR #$prNumber still has merge conflicts. No action taken."
-        }
-    } else {
-        Write-Host "PR #$prNumber does not have 'Merge Conflict' label. Skipping."
-    }
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: download-and-unzip-image
+spec:
+  params:
+    - name: nexusUrl
+      description: URL of the image in Nexus
+    - name: destinationPath
+      description: The path where the image should be unzipped
+    - name: fileName
+      description: The name of the file to download
+  steps:
+    - name: download-image
+      image: curlimages/curl:latest
+      script: |
+        #!/bin/sh
+        echo "Downloading image from Nexus..."
+        curl -L -o $(workspaces.download-path.path)/$(params.fileName) $(params.nexusUrl)
+    - name: unzip-image
+      image: busybox
+      script: |
+        #!/bin/sh
+        echo "Unzipping image..."
+        unzip $(workspaces.download-path.path)/$(params.fileName) -d $(params.destinationPath)
+  workspaces:
+    - name: download-path
+      description: Workspace to download the image to and unzip
