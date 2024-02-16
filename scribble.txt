@@ -1,52 +1,21 @@
-# Variables
-$owner = "yourGitHubUsername" # Replace with your GitHub username or organization name
-$repo = "yourRepoName" # Replace with your repository name
-$token = "yourPersonalAccessToken" # Replace with your GitHub personal access token
-$labelToRemove = "merge-conflict"
+$pullDetails = Invoke-RestMethod -Uri $pull.url -Method get -Header @{Authorization = "Basic $base64AuthInfo"} -ContentType "application/vnd.github.v3+json" -ErrorAction Stop
+    $prNumber = $pullDetails.number
+    $mergeablestate = $pullDetails.mergeable_state | Out-String
+    $labels = $pullDetails.labels | ForEach-Object { $_.name } # Fetch all label names for the PR
 
-# Base64 encode the GitHub Personal Access Token
-$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token"))
+    # Check if PR has the 'Merge Conflict' label
+    if ('Merge Conflict' -in $labels) {
+        Write-Host "PR #$prNumber has 'Merge Conflict' label."
 
-# Function to get all open PRs
-function Get-OpenPRs {
-    $prApiUrl = "https://api.github.com/repos/$owner/$repo/pulls?state=open"
-    $headers = @{
-        Authorization = "Basic $base64AuthInfo"
-        "User-Agent" = "PowerShell Script"
+        # Further actions based on mergeable state
+        if ($mergeablestate -notmatch 'dirty') {
+            # If PR is not dirty (no merge conflicts), attempt to remove the 'Merge Conflict' label
+            $labelUrl = $pullDetails.issue_url + "/labels/Merge%20Conflict" # The label name must be URL encoded
+            Write-Host "PR #$prNumber does not have merge conflicts. Attempting to remove 'Merge Conflict' label."
+            Invoke-RestMethod -Uri $labelUrl -Method Delete -Header @{Authorization = "Basic $base64AuthInfo"} -ContentType "application/vnd.github.v3+json" -ErrorAction SilentlyContinue
+        } else {
+            Write-Host "PR #$prNumber still has merge conflicts. No action taken."
+        }
+    } else {
+        Write-Host "PR #$prNumber does not have 'Merge Conflict' label. Skipping."
     }
-
-    $prs = Invoke-RestMethod -Uri $prApiUrl -Method Get -Headers $headers
-    return $prs
-}
-
-# Function to remove a label
-function Remove-Label {
-    param (
-        $prNumber
-    )
-    $labelApiUrl = "https://api.github.com/repos/$owner/$repo/issues/$prNumber/labels/$labelToRemove"
-    $headers = @{
-        Authorization = "Basic $base64AuthInfo"
-        "User-Agent" = "PowerShell Script"
-    }
-
-    try {
-        Invoke-RestMethod -Uri $labelApiUrl -Method Delete -Headers $headers
-        Write-Host "Label '$labelToRemove' successfully removed from PR #$prNumber."
-    } catch {
-        Write-Error "Failed to remove label from PR #$prNumber. Error: $_"
-    }
-}
-
-# Main script logic
-$openPRs = Get-OpenPRs
-
-foreach ($pr in $openPRs) {
-    if ($pr.mergeable -eq $true -and $pr.labels.name -contains $labelToRemove) {
-        Write-Host "PR #$($pr.number) is mergeable. Attempting to remove label..."
-        Remove-Label -prNumber $pr.number
-    }
-    else {
-        Write-Host "PR #$($pr.number) does not meet criteria for label removal."
-    }
-}
