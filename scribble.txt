@@ -1,28 +1,35 @@
-apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
-  name: download-and-unzip-image
-spec:
-  params:
-    - name: nexusUrl
-      description: URL of the image in Nexus
-    - name: destinationPath
-      description: The path where the image should be unzipped
-    - name: fileName
-      description: The name of the file to download
-  steps:
-    - name: download-image
-      image: curlimages/curl:latest
-      script: |
-        #!/bin/sh
-        echo "Downloading image from Nexus..."
-        curl -L -o $(workspaces.download-path.path)/$(params.fileName) $(params.nexusUrl)
-    - name: unzip-image
-      image: busybox
-      script: |
-        #!/bin/sh
-        echo "Unzipping image..."
-        unzip $(workspaces.download-path.path)/$(params.fileName) -d $(params.destinationPath)
-  workspaces:
-    - name: download-path
-      description: Workspace to download the image to and unzip
+Implementation Process Overview
+
+Environment Setup
+
+Initialize the process by loading essential environment variables using load_dotenv. This step secures access to API keys and other sensitive configurations required for GitHub and OpenAI integration.
+
+
+Pull Request Retrieval
+
+Utilize get_pull_requests to fetch all open pull requests from the designated GitHub repository. This step forms the basis for identifying the PRs that need to be reviewed automatically.
+
+
+File Changes Extraction
+
+For each pull request, get_pr_file_changes is called to obtain the list of files that have been modified, added, or deleted. This information is crucial for understanding the scope and impact of each PR.
+
+
+Diff Analysis and Token Counting
+
+Apply deconstruct_diff to analyze the differences in each file change, breaking down the code modifications for detailed review. Optionally, count_tokens_num can be used to assess the complexity or size of the changes, aiding in prioritizing review efforts.
+
+
+OpenAI Analysis
+
+Leverage the OpenAI class to run advanced analysis on the PR content. This includes evaluating code quality, identifying potential issues, and suggesting improvements. The analysis can be customized to fit specific review guidelines or quality standards.
+
+
+Review Comment Generation
+
+Based on the analysis results, compile and format review comments. Use read_markdown_file if necessary to adhere to predefined templates or formatting guidelines for consistency and clarity in communication.
+
+
+Posting Review Comments
+
+Conclude the automated review process by posting the generated comments back to the GitHub pull request using post_pr_comment. This action provides developers with immediate, actionable feedback directly within their workflow.
