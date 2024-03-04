@@ -1,35 +1,64 @@
-Implementation Process Overview
+import os
+import json
+from dotenv import load_dotenv
+from github_services import post_pr_comment, get_pr_file_changes, get_pull_requests
+from openai import OpenAI
+from utils import deconstruct_diff, count_tokens_num, read_markdown_file
 
-Environment Setup
+def main():
+    load_dotenv()
 
-Initialize the process by loading essential environment variables using load_dotenv. This step secures access to API keys and other sensitive configurations required for GitHub and OpenAI integration.
+    # Initialize OpenAI client
+    api_key = os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=api_key)
+    max_tokens = 2000
 
+    # TODO: This is temporary to review specific PR, we will use Github's labels to identify list of the PRs which needs to be reviewed.
+    # https://hp-jira.external.hp.com/browse/HPXAPPS-6612
+    target_pr_number = 7084
 
-Pull Request Retrieval
+    pull_requests = get_pull_requests()
+    for pr in pull_requests:
+        if pr['number'] == target_pr_number:
+            print(f"Reviewing PR: {pr['title']} [{pr['number']}]")
+            review_pull_request(pr['number'], client, max_tokens)
 
-Utilize get_pull_requests to fetch all open pull requests from the designated GitHub repository. This step forms the basis for identifying the PRs that need to be reviewed automatically.
+def review_pull_request(pr_number, client, max_tokens):
+    pr_data = get_pr_file_changes(pr_number)
+    file_diffs = deconstruct_diff(pr_data)
 
+    for file_path, diff in file_diffs.items():
+        prompt = create_prompt(file_path, diff)
+        token_num = count_tokens_num(prompt)
 
-File Changes Extraction
+        print(f"file path: {file_path}: {token_num}")
 
-For each pull request, get_pr_file_changes is called to obtain the list of files that have been modified, added, or deleted. This information is crucial for understanding the scope and impact of each PR.
+        if token_num <= max_tokens:
+            try:
+                completion = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=prompt,
+                    max_tokens=max_tokens)
 
+                gpt_response = json.loads(completion.choices[0].message.content)
+                for res in gpt_response:
+                    post_pr_comment(pr_number, res['file_path'], f"#### **[AI Auto Reviewer Bot]**<br/><br/>{res['comment']}", res['start_line'], res['end_line'])
+            except Exception as e:
+                print(f"Error during processing completion: {e}")
+        else:
+            print(f"File changes are too large to review: '{file_path}', token number: {token_num}")
 
-Diff Analysis and Token Counting
+def create_prompt(file_path, diff):
+    dir_path = os.path.dirname(file_path)
+    dir_path = dir_path.rsplit('/src', 1)[0] if '/src' in dir_path else dir_path
+    dir_name = os.path.basename(dir_path)
 
-Apply deconstruct_diff to analyze the differences in each file change, breaking down the code modifications for detailed review. Optionally, count_tokens_num can be used to assess the complexity or size of the changes, aiding in prioritizing review efforts.
+    additional_docs = read_markdown_file(f"../../{dir_path}/README.md")
+    additional_api_doc = read_markdown_file(f"../../{dir_path}/api/{dir_name}.api.md")
+    return [
+        {"role": "system", "content": f"Review the following code changes in a GitHub Pull Request and provide comments in a structured JSON format. Your analysis should exclusively focus on the lines that have been modified, as indicated by the diff_hunk line number range. Ignore unchanged lines. The JSON keys should be 'file_path' (which is {file_path}), 'comment', 'start_line', and 'end_line'. It's crucial that the 'start_line' and 'end_line' values correspond precisely to the modified line numbers in the PR. Do not include line numbers outside the modified range. Read and evaluate changes to match API file: {additional_api_doc}. Here are the code changes: ${diff}"},
+        {"role": "user", "content": "Your review should focus on major code improvements or bugs, best practices, and error handling. Each comment should be specific to a part of the code, and the position should accurately reflect the lines in the code where the comment is applicable."}
+    ]
 
-
-OpenAI Analysis
-
-Leverage the OpenAI class to run advanced analysis on the PR content. This includes evaluating code quality, identifying potential issues, and suggesting improvements. The analysis can be customized to fit specific review guidelines or quality standards.
-
-
-Review Comment Generation
-
-Based on the analysis results, compile and format review comments. Use read_markdown_file if necessary to adhere to predefined templates or formatting guidelines for consistency and clarity in communication.
-
-
-Posting Review Comments
-
-Conclude the automated review process by posting the generated comments back to the GitHub pull request using post_pr_comment. This action provides developers with immediate, actionable feedback directly within their workflow.
+if __name__ == "__main__":
+    main()
