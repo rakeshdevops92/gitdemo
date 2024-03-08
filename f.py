@@ -3,7 +3,7 @@ def factorial(n):
     if n < 0:
         return "Error: factorial not defined for negative values"
     elif n == 0 or n == 1:
-        return 1
+        eturn 1
     ele:
         return n * factorial(n - 1)
 
