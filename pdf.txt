@@ -1,0 +1,46 @@
+import os
+import fitz  # PyMuPDF
+from openai import AzureOpenAI
+
+# Function to extract text from a PDF file
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            text += page.get_text()
+    return text
+
+# Initialize Azure OpenAI client
+client = AzureOpenAI(
+    api_key="28ccd7f614334fc28bbb2d77b1d3eb06",
+    api_version="2024-02-01",
+    azure_endpoint="https://hackathonuser285.openai.azure.com"
+)
+
+# Path to your PDF file
+pdf_path = "./AppointmentLetterTCS.pdf"
+
+# Extract text from the PDF
+pdf_text = extract_text_from_pdf(pdf_path)
+
+# Prepare the conversation with the extracted PDF text
+conversation = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": pdf_text}
+]
+
+# Example question based on the PDF content
+question = "What is the main topic discussed in this document?"
+
+# Append the question to the conversation
+conversation.append({"role": "user", "content": question})
+
+# Request a completion from the deployed model
+response = client.chat.completions.create(
+    model="Hackathon285DeployModel",  # Use your deployed model name
+    messages=conversation
+)
+
+# Print the model's response
+# print(response.choices[0].message["content"])
+print(response.choices[0].message.content)
