@@ -1,4 +1,5 @@
 # Define parameters
+$githubEnterpriseUrl = "https://github.yourdomain.com" # Replace with your GitHub Enterprise Server URL
 $owner = "repo-owner" # Replace with the repository owner's username
 $repo = "repo-name" # Replace with the repository name
 $branch = "main" # Replace with the branch name
@@ -7,11 +8,11 @@ $token = "your-personal-access-token" # Replace with your GitHub Personal Access
 # Set up the header with authorization
 $headers = @{
     Authorization = "token $token"
-    Accept = "application/vnd.github.v3+json"
+    Accept = "application/vnd.github.luke-cage-preview+json"
 }
 
-# Define the URI for the branch protection API
-$uri = "https://api.github.com/repos/$owner/$repo/branches/$branch/protection"
+# Define the URI for the branch protection API on GitHub Enterprise Server
+$uri = "$githubEnterpriseUrl/api/v3/repos/$owner/$repo/branches/$branch/protection"
 
 # Execute the REST API call to get branch protection rules
 try {
