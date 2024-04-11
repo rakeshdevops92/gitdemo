@@ -1,15 +1,48 @@
+# Define Variables
+$token = "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" # Replace with your GitHub Personal Access Token
+$sourceOwner = "rakeshdevops92" # Replace with the owner of the repository
+$sourceRepo = "gitdemo" # Replace with the repository name
+$sourceBranch = "main" # Replace with the branch name
+
+$destinationOwner = "rakeshdevops92" # Replace with the destination owner name
+$destinationRepo = "gitdemo2" # Replace with the destination repository name
+$destinationBranches = @("main") # List of destination branches
+
 $headers = @{
-    "Authorization" = "Bearer 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"
-    "Accept" = "application/vnd.github.v3+json"
+    "Authorization" = "Bearer $token"
+    "Accept" = "application/vnd.github.luke-cage-preview+json"
 }
 
-$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
+$apiUrlSource = "https://api.github.com/repos/$sourceOwner/$sourceRepo/branches/$sourceBranch/protection"
 
+# Retrieve branch protection from source
 try {
-    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-    $response | ConvertTo-Json -Depth 100
+    $sourceProtectionRules = Invoke-RestMethod -Uri $apiUrlSource -Method Get -Headers $headers
+    Write-Output "Retrieved branch protection rules from $sourceBranch"
 }
 catch {
-    Write-Error $_.Exception.Response.StatusCode.Value__
-    Write-Error $_.Exception.Message
+    Write-Error "Failed to retrieve branch protection rules from $sourceBranch : $_"
+    exit
+}
+
+# Simplify and prepare the payload for destination branches (customize as needed)
+$protectionPayload = @{
+    required_status_checks = $sourceProtectionRules.required_status_checks
+    enforce_admins = $sourceProtectionRules.enforce_admins.enabled
+    required_pull_request_reviews = @{
+        required_approving_review_count = $sourceProtectionRules.required_pull_request_reviews.required_approving_review_count
+    }
+    restrictions = $null
+} | ConvertTo-Json
+
+# Apply protection rules to each destination branch
+foreach ($branch in $destinationBranches) {
+    $apiUrlDestination = "https://api.github.com/repos/$destinationOwner/$destinationRepo/branches/$branch/protection"
+    try {
+        Invoke-RestMethod -Uri $apiUrlDestination -Method Put -Headers $headers -Body $protectionPayload -ContentType "application/json"
+        Write-Output "Applied branch protection rules to $branch"
+    }
+    catch {
+        Write-Error "Failed to apply branch protection rules to $branch : $_"
+    }
 }
