@@ -1,29 +1,9 @@
-# Define parameters
-$githubEnterpriseUrl = "https://github.yourdomain.com" # Replace with your GitHub Enterprise Server URL
-$owner = "repo-owner" # Replace with the repository owner's username
-$repo = "repo-name" # Replace with the repository name
-$branch = "main" # Replace with the branch name
-$token = "your-personal-access-token" # Replace with your GitHub Personal Access Token
-
-# Set up the header with authorization
 $headers = @{
-    Authorization = "token $token"
-    Accept = "application/vnd.github.luke-cage-preview+json"
+    "Authorization" = "token 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"
+    "Accept" = "application/vnd.github.v3+json"
 }
 
-# Define the URI for the branch protection API on GitHub Enterprise Server
-$uri = "$githubEnterpriseUrl/api/v3/repos/$owner/$repo/branches/$branch/protection"
+$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
 
-# Execute the REST API call to get branch protection rules
-try {
-    $response = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
-    # Output the branch protection rules
-    $response | ConvertTo-Json | Write-Output
-}
-catch {
-    # Catch and display any errors
-    Write-Error "Failed to retrieve branch protection rules. Error: $_"
-}
-
-
-curl -H "Authorization: token YOUR_PERSONAL_ACCESS_TOKEN" -H "Accept: application/vnd.github.v3+json" "https://github.yourdomain.com/api/v3/repos/source-owner/source-repo/branches/main/protection"
+$response = Invoke-WebRequest -Uri $url -Headers $headers -Method Get
+$response.Content
