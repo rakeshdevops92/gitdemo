@@ -1,9 +1,15 @@
 $headers = @{
-    "Authorization" = "token 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"
+    "Authorization" = "Bearer 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"
     "Accept" = "application/vnd.github.v3+json"
 }
 
 $url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
 
-$response = Invoke-WebRequest -Uri $url -Headers $headers -Method Get
-$response.Content
+try {
+    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+    $response | ConvertTo-Json -Depth 100
+}
+catch {
+    Write-Error $_.Exception.Response.StatusCode.Value__
+    Write-Error $_.Exception.Message
+}
