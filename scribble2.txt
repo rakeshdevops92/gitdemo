@@ -24,3 +24,6 @@ catch {
     # Catch and display any errors
     Write-Error "Failed to retrieve branch protection rules. Error: $_"
 }
+
+
+curl -H "Authorization: token YOUR_PERSONAL_ACCESS_TOKEN" -H "Accept: application/vnd.github.v3+json" "https://github.yourdomain.com/api/v3/repos/source-owner/source-repo/branches/main/protection"
