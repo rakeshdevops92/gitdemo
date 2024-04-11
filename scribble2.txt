@@ -1,113 +1,25 @@
-# Trigger on main branch changes
-trigger:
-- main
+# Define parameters
+$owner = "repo-owner" # Replace with the repository owner's username
+$repo = "repo-name" # Replace with the repository name
+$branch = "main" # Replace with the branch name
+$token = "your-personal-access-token" # Replace with your GitHub Personal Access Token
 
-# Define pipeline parameters
-parameters:
+# Set up the header with authorization
+$headers = @{
+    Authorization = "token $token"
+    Accept = "application/vnd.github.v3+json"
+}
 
-  # Environment parameter
-  - name: env
-    displayName: Environment
-    type: string
-    values:
-      - dev
-      - test
-      - plab
-      - prod
+# Define the URI for the branch protection API
+$uri = "https://api.github.com/repos/$owner/$repo/branches/$branch/protection"
 
-  # Region parameter
-  - name: region
-    displayName: Region
-    type: string
-    values:
-      - eastus2
-      - westus2
-
-  # Kubernetes label selector parameter
-  - name: label
-    displayName: Label Selector
-    type: string
-    default: 'Voltage=true'
-
-# Define the agent pool based on selected region
-pool:
-  name: 25366-CricketOnline-DevOps-${{ parameters.region }}-AgentPool
-
-# Define the steps to execute in the pipeline
-steps:
-
-  # Execute an Azure CLI task
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: '25366-CricketOnline'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        # Install kubelogin
-        echo "Installing kubelogin..."
-        VERSION=$(curl --silent "https://api.github.com/repos/Azure/kubelogin/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        wget https://github.com/Azure/kubelogin/releases/download/$VERSION/kubelogin-linux-amd64.zip
-        unzip kubelogin-linux-amd64.zip
-        sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
-
-        # Define the environment, region, and label parameters
-        env="${{ parameters.env }}"
-        region="${{ parameters.region }}"
-        label="${{ parameters.label }}"
-
-        # Select resource group and cluster name based on the environment and region parameters
-        echo "Selecting resource group and cluster name based on provided environment and region..."
-        if [[ $env == "dev" ]]; then
-          if [[ $region == "eastus2" ]]; then
-            resourceGroup="25366-eastus2-nprd-dev-rg"
-            clusterName="ck-25366-eastus2-nprd-dev-aks"
-          elif [[ $region == "westus2" ]]; then
-            resourceGroup="25366-westus2-nprd-dev-rg"
-            clusterName="ck-25366-westus2-nprd-dev-aks"
-          fi
-        elif [[ $env == "test" ]]; then
-          if [[ $region == "eastus2" ]]; then
-            resourceGroup="25366-eastus2-nprd-test-rg"
-            clusterName="ck-25366-eastus2-nprd-test-aks"
-          elif [[ $region == "westus2" ]]; then
-            resourceGroup="25366-westus2-nprd-test-rg"
-            clusterName="ck-25366-westus2-nprd-test-aks"
-          fi
-        elif [[ $env == "plab" ]]; then
-          if [[ $region == "eastus2" ]]; then
-            resourceGroup="25366-eastus2-nprd-plab-rg"
-            clusterName="ck-25366-eastus2-nprd-plab-aks"
-          elif [[ $region == "westus2" ]]; then
-            resourceGroup="25366-westus2-nprd-plab-rg"
-            clusterName="ck-25366-westus2-nprd-plab-aks"
-          fi
-        elif [[ $env == "prod" ]]; then
-          if [[ $region == "eastus2" ]]; then
-            resourceGroup="25366-eastus2-nprd-prod-rg"
-            clusterName="ck-25366-eastus2-nprd-prod-aks"
-          elif [[ $region == "westus2" ]]; then
-            resourceGroup="25366-westus2-nprd-prod-rg"
-            clusterName="ck-25366-westus2-nprd-prod-aks"
-          fi
-        else
-          echo "Invalid environment or region specified."
-          exit 1
-        fi
-
-        echo "Selected Resource Group: $resourceGroup"
-        echo "Selected Cluster Name: $clusterName"
-
-        # Get the AKS cluster credentials using the derived resource group and cluster name
-        echo "Fetching AKS credentials..."
-        az aks get-credentials --resource-group $resourceGroup --name $clusterName
-
-        # Get the list of deployments matching the provided Kubernetes label
-        echo "Fetching deployments with label: $label..."
-        DEPLOYMENTS=$(kubectl get deployments -n cwdigital-test -l $label -o jsonpath='{.items[*].metadata.name}')
-
-        # Loop through each deployment and restart it
-        for DEPLOYMENT in $DEPLOYMENTS; do
-          echo "Restarting deployment: $DEPLOYMENT..."
-          kubectl rollout restart deployment/$DEPLOYMENT -n cwdigital-test
-        done
-
+# Execute the REST API call to get branch protection rules
+try {
+    $response = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
+    # Output the branch protection rules
+    $response | ConvertTo-Json | Write-Output
+}
+catch {
+    # Catch and display any errors
+    Write-Error "Failed to retrieve branch protection rules. Error: $_"
+}
