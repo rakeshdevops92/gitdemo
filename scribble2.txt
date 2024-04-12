@@ -1,31 +1,33 @@
 # Define Variables
-$token = "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" # Replace with your GitHub Personal Access Token
-$sourceOwner = "rakeshdevops92" # Replace with the owner of the repository
-$sourceRepo = "gitdemo" # Replace with the repository name
-$sourceBranch = "main" # Replace with the branch name
+$token = "your-personal-access-token" # Replace with your GitHub Personal Access Token
+$sourceOwner = "source-owner-name" # Replace with the source owner name
+$sourceRepo = "source-repo-name" # Replace with the source repository name
+$sourceBranch = "source-branch-name" # Replace with the source branch name
 
-$destinationOwner = "rakeshdevops92" # Replace with the destination owner name
-$destinationRepo = "gitdemo2" # Replace with the destination repository name
-$destinationBranches = @("main") # List of destination branches
+$destinationOwner = "destination-owner-name" # Replace with the destination owner name
+$destinationRepo = "destination-repo-name" # Replace with the destination repository name
+$destinationBranches = @("destination-branch-1", "destination-branch-2") # List of destination branches
 
+# Define Headers
 $headers = @{
     "Authorization" = "Bearer $token"
-    "Accept" = "application/vnd.github.luke-cage-preview+json"
+    "Accept" = "application/vnd.github+json; api-version=2022-11-28"
 }
 
-$apiUrlSource = "https://api.github.com/repos/$sourceOwner/$sourceRepo/branches/$sourceBranch/protection"
+# Define API Url for Source Branch Protection
+$apiUrlSource = "https://github.yourdomain.com/api/v3/repos/$sourceOwner/$sourceRepo/branches/$sourceBranch/protection"
 
-# Retrieve branch protection from source
+# Retrieve branch protection from the source
 try {
     $sourceProtectionRules = Invoke-RestMethod -Uri $apiUrlSource -Method Get -Headers $headers
     Write-Output "Retrieved branch protection rules from $sourceBranch"
 }
 catch {
-    Write-Error "Failed to retrieve branch protection rules from $sourceBranch : $_"
+    Write-Error "Failed to retrieve branch protection rules from $sourceBranch: $_"
     exit
 }
 
-# Simplify and prepare the payload for destination branches (customize as needed)
+# Prepare the payload for the destination branches (customize as needed)
 $protectionPayload = @{
     required_status_checks = $sourceProtectionRules.required_status_checks
     enforce_admins = $sourceProtectionRules.enforce_admins.enabled
@@ -37,12 +39,12 @@ $protectionPayload = @{
 
 # Apply protection rules to each destination branch
 foreach ($branch in $destinationBranches) {
-    $apiUrlDestination = "https://api.github.com/repos/$destinationOwner/$destinationRepo/branches/$branch/protection"
+    $apiUrlDestination = "https://github.yourdomain.com/api/v3/repos/$destinationOwner/$destinationRepo/branches/$branch/protection"
     try {
         Invoke-RestMethod -Uri $apiUrlDestination -Method Put -Headers $headers -Body $protectionPayload -ContentType "application/json"
         Write-Output "Applied branch protection rules to $branch"
     }
     catch {
-        Write-Error "Failed to apply branch protection rules to $branch : $_"
+        Write-Error "Failed to apply branch protection rules to $branch: $_"
     }
 }
