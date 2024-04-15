@@ -1,15 +1,17 @@
 $headers = @{
-    "Authorization" = "Bearer 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"
+    "Authorization" = "Bearer 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" # Replace with your actual Personal Access Token
     "Accept" = "application/vnd.github.v3+json"
+    "X-GitHub-Api-Version" = "2022-11-28"
 }
 
-$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
+$uri = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
 
 try {
-    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-    $response | ConvertTo-Json -Depth 100
+    $response = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
+    # Output the response
+    $response | ConvertTo-Json | Out-String | Write-Output
 }
 catch {
-    Write-Error $_.Exception.Response.StatusCode.Value__
+    # If the call fails, capture and display the error message
     Write-Error $_.Exception.Message
 }
