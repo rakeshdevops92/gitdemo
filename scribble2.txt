@@ -1,15 +1,14 @@
+# Define the headers as a hashtable
 $headers = @{
     "Authorization" = "Bearer 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"
     "Accept" = "application/vnd.github.v3+json"
 }
 
-$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
+# Define the URI
+$uri = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
 
-try {
-    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-    $response | ConvertTo-Json -Depth 100
-}
-catch {
-    Write-Error $_.Exception.Response.StatusCode.Value__
-    Write-Error $_.Exception.Message
-}
+# Use Invoke-WebRequest with the defined headers
+$response = Invoke-WebRequest -Uri $uri -Headers $headers -Method Get
+
+# Output the response content
+$response.Content
