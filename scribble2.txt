@@ -1,15 +1,31 @@
-$headers = @{
-    "Authorization" = "Bearer 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"
-    "Accept" = "application/vnd.github.v3+json"
-}
 
-$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
+$destinationRepos = @("destination-repo-1", "destination-repo-2") # Array of destination repository names
 
+# API URL for getting branch protection from the source
+$apiUrlSource = "https://github.azc.ext.hp.com/api/v3/repos/$sourceOwner/$sourceRepo/branches/$sourceBranch/protection"
+
+# Retrieve branch protection from the source
+$sourceProtectionRules = $null
 try {
-    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-    $response | ConvertTo-Json -Depth 100
+    $sourceProtectionRules = Invoke-RestMethod -Uri $apiUrlSource -Method Get -Headers $headers
+    Write-Output "Retrieved branch protection rules from $sourceBranch"
 }
 catch {
-    Write-Error $_.Exception.Response.StatusCode.Value__
-    Write-Error $_.Exception.Message
+    Write-Error "Failed to retrieve branch protection rules from $sourceBranch: $_"
+    exit
+}
+
+# Prepare the payload for the destination branch (customize as needed)
+$protectionPayload = $sourceProtectionRules | ConvertTo-Json -Depth 5
+
+# Apply protection rules to each destination repository and branch
+foreach ($destRepo in $destinationRepos) {
+    $apiUrlDestination = "https://github.azc.ext.hp.com/api/v3/repos/$destinationOwner/$destRepo/branches/$destinationBranch/protection"
+    try {
+        Invoke-RestMethod -Uri $apiUrlDestination -Method Put -Headers $headers -Body $protectionPayload -ContentType "application/json"
+        Write-Output "Applied branch protection rules to branch '$destinationBranch' in repository '$destRepo'"
+    }
+    catch {
+        Write-Error "Failed to apply branch protection rules to branch '$destinationBranch' in repository '$destRepo': $_"
+    }
 }
