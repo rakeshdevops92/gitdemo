@@ -1,22 +1,3 @@
-# Define Variables
-$token = "your-personal-access-token" # Replace with your GitHub Personal Access Token
-$sourceOwner = "source-owner-name" # Replace with the source owner name
-$sourceRepo = "source-repo-name" # Replace with the source repository name
-$sourceBranch = "source-branch-name" # Replace with the source branch name
-
-$destinationOwner = "destination-owner-name" # Replace with the destination owner name
-$destinationRepo = "destination-repo-name" # Replace with the destination repository name
-$destinationBranch = "destination-branch-name" # Replace with the destination branch name
-
-# Define Headers
-$headers = @{
-    "Authorization" = "Bearer $token"
-    "Accept" = "application/vnd.github.v3+json"
-    "X-GitHub-Api-Version" = "2022-11-28"
-}
-
-# API URL for getting branch protection from the source
-$apiUrlSource = "https://github.azc.ext.hp.com/api/v3/repos/$sourceOwner/$sourceRepo/branches/$sourceBranch/protection"
 
 # Retrieve branch protection from the source
 try {
@@ -28,15 +9,31 @@ catch {
     exit
 }
 
+# Transform the retrieved rules to match the expected payload schema
+$transformedProtectionRules = @{
+    required_status_checks = @{
+        strict   = $sourceProtectionRules.required_status_checks.strict
+        contexts = $sourceProtectionRules.required_status_checks.contexts
+    }
+    enforce_admins = $sourceProtectionRules.enforce_admins.enabled
+    required_pull_request_reviews = @{
+        dismiss_stale_reviews = $sourceProtectionRules.required_pull_request_reviews.dismiss_stale_reviews
+        require_code_owner_reviews = $sourceProtectionRules.required_pull_request_reviews.require_code_owner_reviews
+        required_approving_review_count = $sourceProtectionRules.required_pull_request_reviews.required_approving_review_count
+    }
+    restrictions = @{
+        users = $sourceProtectionRules.restrictions.users
+        teams = $sourceProtectionRules.restrictions.teams
+    }
+    # Add any other rules that you need to transform based on the source rules
+} | ConvertTo-Json -Depth 5
+
 # API URL for updating branch protection on the destination
 $apiUrlDestination = "https://github.azc.ext.hp.com/api/v3/repos/$destinationOwner/$destinationRepo/branches/$destinationBranch/protection"
 
-# Prepare the payload for the destination branch (may require transformation depending on the API version and rules)
-$protectionPayload = $sourceProtectionRules | ConvertTo-Json
-
 # Apply protection rules to the destination branch
 try {
-    $response = Invoke-RestMethod -Uri $apiUrlDestination -Method Put -Headers $headers -Body $protectionPayload -ContentType "application/json"
+    $response = Invoke-RestMethod -Uri $apiUrlDestination -Method Put -Headers $headers -Body $transformedProtectionRules -ContentType "application/json"
     Write-Output "Applied branch protection rules to $destinationBranch in $destinationRepo"
 }
 catch {
