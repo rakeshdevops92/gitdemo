@@ -1,15 +1,35 @@
-$headers = @{
-    "Authorization" = "Bearer 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"
-    "Accept" = "application/vnd.github.v3+json"
-}
+import requests
+import os
 
-$url = "https://github.azc.ext.hp.com/api/v3/repos/merge-bot-test-1/merge-bot-test-1/branches/main/protection"
+def download_and_split_file(url, dest_folder, chunk_size=1024*1024):
+    filename = url.split('/')[-1].split('?')[0]
+    path = os.path.join(dest_folder, filename)
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        os.makedirs(dest_folder, exist_ok=True)
+        with open(path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                f.write(chunk)
+        split_file(path, chunk_size)
+    else:
+        print(f"Failed to download file: status code {response.status_code}")
 
-try {
-    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-    $response | ConvertTo-Json -Depth 100
-}
-catch {
-    Write-Error $_.Exception.Response.StatusCode.Value__
-    Write-Error $_.Exception.Message
-}
+def split_file(file_path, chunk_size):
+    file_size = os.path.getsize(file_path)
+    num_chunks = file_size // chunk_size + (1 if file_size % chunk_size else 0)
+    with open(file_path, 'rb') as file:
+        chunk_num = 0
+        while True:
+            chunk = file.read(chunk_size)
+            if not chunk:
+                break
+            chunk_file_path = f"{file_path}.part{chunk_num}"
+            with open(chunk_file_path, 'wb') as chunk_file:
+                chunk_file.write(chunk)
+            chunk_num += 1
+
+url = 'https://s3.us-south.cloud-object-storage.appdomain.cloud/pnc-temp-retrieval-bkt-ritm3590766-04-29-2024/mongodb/maverick-transactions/Transactions.archive?AWSAccessKeyId=883a402c51dc4c5a98f8239623fed'
+dest_folder = '/path/to/destination'
+chunk_size = 1024 * 1024 * 10
+
+download_and_split_file(url, dest_folder, chunk_size)
