@@ -1,35 +1,29 @@
-import requests
-import os
+# Variables
+$url = "https://s3.us-south.cloud-object-storage.appdomain.cloud/pnc-temp-retrieval-bkt-ritm3590766-04-29-2024/mongodb/maverick-transactions/Transactions.archive?AWSAccessKeyId=883a402c51dc4c5a98f8239623fed&Signature=0%2B2dxgHLXSZedL0TGJKDqapuA%2F%3B%3B%3D&Expires=1715106286"
+$outputFilePath = "C:\Users\jp72963\Downloads\Transactions.archive"
+$chunkSize = 10MB  # Configurable chunk size
 
-def download_and_split_file(url, dest_folder, chunk_size=1024*1024):
-    filename = url.split('/')[-1].split('?')[0]
-    path = os.path.join(dest_folder, filename)
-    response = requests.get(url, stream=True)
-    if response.status_code == 200:
-        os.makedirs(dest_folder, exist_ok=True)
-        with open(path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                f.write(chunk)
-        split_file(path, chunk_size)
-    else:
-        print(f"Failed to download file: status code {response.status_code}")
+# Download the file
+Invoke-WebRequest -Uri $url -OutFile $outputFilePath
 
-def split_file(file_path, chunk_size):
-    file_size = os.path.getsize(file_path)
-    num_chunks = file_size // chunk_size + (1 if file_size % chunk_size else 0)
-    with open(file_path, 'rb') as file:
-        chunk_num = 0
-        while True:
-            chunk = file.read(chunk_size)
-            if not chunk:
-                break
-            chunk_file_path = f"{file_path}.part{chunk_num}"
-            with open(chunk_file_path, 'wb') as chunk_file:
-                chunk_file.write(chunk)
-            chunk_num += 1
+# Function to split file into chunks
+Function Split-File {
+    param (
+        [string]$File,
+        [int]$Size
+    )
+    $buffer = New-Object byte[] $Size
+    $stream = [System.IO.File]::OpenRead($File)
+    $chunkNr = 0
 
-url = 'https://s3.us-south.cloud-object-storage.appdomain.cloud/pnc-temp-retrieval-bkt-ritm3590766-04-29-2024/mongodb/maverick-transactions/Transactions.archive?AWSAccessKeyId=883a402c51dc4c5a98f8239623fed'
-dest_folder = '/path/to/destination'
-chunk_size = 1024 * 1024 * 10
+    while ($bytesRead = $stream.Read($buffer, 0, $buffer.Length)) {
+        $chunkPath = "$($File).part$chunkNr"
+        [System.IO.File]::WriteAllBytes($chunkPath, $buffer[0..($bytesRead-1)])
+        $chunkNr++
+    }
 
-download_and_split_file(url, dest_folder, chunk_size)
+    $stream.Close()
+}
+# Split the downloaded file into chunks
+Split-File -File $outputFilePath -Size $chunkSize
+
