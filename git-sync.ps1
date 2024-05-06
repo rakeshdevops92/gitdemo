@@ -31,17 +31,29 @@ foreach ($repo in $repoList) {
         $fileContent = $filesToCreate[$fileName]
         $encodedContent = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($fileContent))
 
-        $destinationFileUrl = "$baseUrl/$org/$repo/contents/.github/$fileName"
-        $body = @{
-            message = "Create $fileName"
-            content = $encodedContent
-        } | ConvertTo-Json -Depth 5
+        $fileUrl = "$baseUrl/$org/$repo/contents/.github/$fileName"
 
+        # Check if file exists
         try {
-            Invoke-RestMethod -Uri $destinationFileUrl -Method Put -Headers $headers -Body $body -ContentType "application/json"
-            Write-Host "Successfully created $fileName in $repo."
+            Invoke-RestMethod -Uri $fileUrl -Method Get -Headers $headers
+            Write-Host "$fileName already exists in $repo. Skipping creation."
         } catch {
-            Write-Error "Failed to create $fileName in $repo: $_"
+            if ($_.Exception.Response.StatusCode -eq 'NotFound') {
+                # File does not exist, create it
+                $body = @{
+                    message = "Create $fileName"
+                    content = $encodedContent
+                } | ConvertTo-Json -Depth 5
+
+                try {
+                    Invoke-RestMethod -Uri $fileUrl -Method Put -Headers $headers -Body $body -ContentType "application/json"
+                    Write-Host "Successfully created $fileName in $repo."
+                } catch {
+                    Write-Error "Failed to create $fileName in $repo: $_"
+                }
+            } else {
+                Write-Error "Error checking existence of $fileName in $repo: $_"
+            }
         }
     }
 }
