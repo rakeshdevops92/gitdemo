@@ -1,32 +1,36 @@
-# Branch Protection Management Script
+# PowerShell File Handling Script
 
 ## Overview
-This PowerShell script is designed to automate the management of GitHub branch protection rules. It retrieves branch protection settings from a specified source branch and applies these settings to multiple destination branches across different repositories.
+This PowerShell script is designed to automate the download of large files from IBM Cloud Object Storage and to split them into manageable chunks. It addresses the challenges associated with managing large datasets, making the process more efficient and reliable.
+
+## Purpose
+The script serves to:
+- **Download** large files directly to a local machine from a specified URL.
+- **Split** the downloaded files into predefined chunk sizes for easier data management.
+
+## Requirements
+- **PowerShell 5.1+**: Ensure compatibility with modern PowerShell features.
+- **Network Access**: Required for downloading files.
+- **Adequate Storage**: Sufficient disk space on the local system is necessary for storing both the entire file and its chunks.
+- **Permissions**: Appropriate read/write permissions are needed for operations on the filesystem.
 
 ## Features
-- **Retrieve Protection Rules**: Fetches the branch protection rules from a source branch.
-- **Apply Protection Rules**: Applies the fetched rules to specified destination branches in multiple repositories.
-- **Customizable**: Easily adaptable for different repositories and branches.
-- **Logging**: Provides detailed logging of operations for troubleshooting and verification.
-
-## Prerequisites
-- **PowerShell**: The script is written for PowerShell and requires PowerShell to be installed on the machine where it's executed.
-- **GitHub Personal Access Token**: A personal access token with sufficient permissions to manage branch protections in the target repositories.
-
-## Setup
-1. **Secure File with Repositories**: Maintain a list of repository names in an Azure DevOps secure file.
-2. **Personal Access Token**: Ensure your GitHub Personal Access Token (PAT) has the necessary permissions. This token must be able to read and write branch protection settings.
+- **Efficient File Downloading**: Uses `Invoke-WebRequest` for robust file transfers.
+- **Dynamic File Splitting**: Automatically splits the downloaded file into segments, saving each as a separate file.
+- **Error Management**: Basic error handling is implemented to address potential issues during download or file manipulation.
 
 ## Configuration
-Update the script variables at the beginning of the script:
-- `sourceOwner`: Owner of the source repository.
-- `sourceRepo`: Source repository from which to copy the branch protection rules.
-- `sourceBranch`: Branch in the source repository from which to copy the protection rules.
-- `destinationOwner`: Owner of the destination repositories.
-- `destinationBranch`: Branch name where the rules will be applied.
+Modify the following script parameters as needed:
+- **`$url`**: The URL of the file to download.
+- **`$outputFilePath`**: Local path where the downloaded file will be stored.
+- **`$chunkSize`**: Size of each file segment after splitting.
+
+## Workflow
+1. **Initialize Variables**: Configure the script with the URL, output path, and chunk size.
+2. **Download File**: Execute the file download to the specified local path.
+3. **Split File**: Post-download, the file is split into chunks as configured.
+4. **Clean-Up and Verification**: Perform any necessary clean-up operations and verify the integrity of the file and its chunks.
 
 ## Usage
-1. **Configure your PAT and repository details** in the script.
-2. **Run the script** in PowerShell:
-   ```bash
-   .\manage-branch-protection.ps1
+Ensure all configurations are set correctly before running the script. Execute the script within a PowerShell environment that has the necessary permissions.
+
