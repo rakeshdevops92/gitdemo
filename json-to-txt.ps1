@@ -26,6 +26,10 @@ foreach ($key in $jsonContent.imports.Keys) {
     }
 }
 
+# Ensure the lengths are at least as long as the header titles
+$maxNameLength = [math]::Max($maxNameLength, 17)
+$maxVersionLength = [math]::Max($maxVersionLength, 7)
+
 # Create a formatted date string
 $dateTime = Get-Date -Format "MM/dd/yyyy HH:mm:ss"
 $buildVersion = "34.12421.1475.0"  # Replace with actual build version if needed
@@ -36,7 +40,7 @@ HPX Build Date: $dateTime
 HPX Build Version: $buildVersion
 
 | PACKAGE NAME (features) $("{ " * ($maxNameLength - 17)) | VERSION $("{ " * ($maxVersionLength - 7)) |
-|$("-" * ($maxNameLength + 20))|$("-" * ($maxVersionLength + 9))|
+|$("-" * ($maxNameLength + 21))|$("-" * ($maxVersionLength + 9))|
 "@
 
 # Append features to output string
