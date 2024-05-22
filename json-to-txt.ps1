@@ -1,6 +1,12 @@
 # Read JSON file and parse it
-$jsonFilePath = "path\to\your\jsonfile.json"
+$jsonFilePath = "apps\HPX\config\importmap.json"
 $jsonContent = Get-Content -Raw -Path $jsonFilePath | ConvertFrom-Json
+
+# Verify the structure of the JSON
+if (-not $jsonContent.imports) {
+    Write-Host "The 'imports' property is not found in the JSON content."
+    exit 1
+}
 
 # Initialize variables for storing max lengths
 $maxNameLength = 0
@@ -30,18 +36,18 @@ HPX Build Date: $dateTime
 HPX Build Version: $buildVersion
 
 | PACKAGE NAME (features) $("{ " * ($maxNameLength - 17)) | VERSION $("{ " * ($maxVersionLength - 7)) |
-|$("-" * ($maxNameLength + 3))|$("-" * ($maxVersionLength + 2))|
+|$("-" * ($maxNameLength + 20))|$("-" * ($maxVersionLength + 9))|
 "@
 
 # Append features to output string
 foreach ($key in $jsonContent.imports.Keys) {
     $name = $key
     $version = $jsonContent.imports.$key
-    $output += "| $name$("{ " * ($maxNameLength - $name.Length + 1))| $version$("{ " * ($maxVersionLength - $version.Length + 1))|\n"
+    $output += "| $name$("{ " * ($maxNameLength - $name.Length)) | $version$("{ " * ($maxVersionLength - $version.Length)) |\n"
 }
 
 # Output file path
-$outputFilePath = "path\to\your\outputfile.txt"
+$outputFilePath = ".\outputfile.txt"
 Set-Content -Path $outputFilePath -Value $output
 
 Write-Host "Human-readable text file has been created at $outputFilePath"
