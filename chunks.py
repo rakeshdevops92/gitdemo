@@ -22,47 +22,52 @@ cos = ibm_boto3.resource(
     endpoint_url=COS_ENDPOINT
 )
 
-def download_chunk(bucket_name, key, start_byte, end_byte, part_number, local_file):
-    # Download a chunk of the file
+def download_chunk(bucket_name, key, start_byte, end_byte, part_number, temp_file_path):
     range_header = f'bytes={start_byte}-{end_byte}'
     response = cos.meta.client.get_object(Bucket=bucket_name, Key=key, Range=range_header)
-    with open(local_file, 'r+b') as f:
-        f.seek(start_byte)
+    temp_file_chunk_path = f"{temp_file_path}.part{part_number}"
+    with open(temp_file_chunk_path, 'wb') as f:
         f.write(response['Body'].read())
     print(f'Chunk {part_number} downloaded: {start_byte} to {end_byte}')
+
+def merge_chunks(temp_file_path, local_file_path, num_parts):
+    with open(local_file_path, 'wb') as output_file:
+        for part_number in range(1, num_parts + 1):
+            temp_file_chunk_path = f"{temp_file_path}.part{part_number}"
+            with open(temp_file_chunk_path, 'rb') as chunk_file:
+                output_file.write(chunk_file.read())
+            os.remove(temp_file_chunk_path)  # Remove the chunk file after merging
+    print(f"All chunks merged into {local_file_path}")
 
 def download_bucket_contents(bucket_name):
     print("Retrieving bucket contents from: {0}".format(bucket_name))
     try:
         files = cos.Bucket(bucket_name).objects.all()
         for file in files:
-            # Calculate Start Time
             print("********************************************************")
             start = time.time()
             Start_time = datetime.now()
             print("Item Start Time = ", Start_time)
             print("Downloading Item: {0} ({1} bytes)".format(file.key, file.size))
 
-            # Getting File Path
             local_path_filename = "/home/pj72963/IDF_PY/" + file.key
             directory_path = os.path.dirname(local_path_filename)
             Path(directory_path).mkdir(parents=True, exist_ok=True)
+            temp_file_path = local_path_filename + ".temp"
 
-            # Downloading bucket contents
             if file.size > 0:
-                with open(local_path_filename, 'wb') as f:
-                    f.truncate(file.size)
                 part_size = 2 * 1024 * 1024 * 1024  # 2GB
                 part_number = 1
+                num_parts = (file.size + part_size - 1) // part_size
                 for start_byte in range(0, file.size, part_size):
                     end_byte = min(start_byte + part_size - 1, file.size - 1)
-                    download_chunk(bucket_name, file.key, start_byte, end_byte, part_number, local_path_filename)
+                    download_chunk(bucket_name, file.key, start_byte, end_byte, part_number, temp_file_path)
                     part_number += 1
-                print("Successfully Downloaded")
+                merge_chunks(temp_file_path, local_path_filename, num_parts)
+                print("Successfully Downloaded and Merged")
             else:
                 print("Skipping Item because Item size is Zero byte")
 
-            # Calculate End Time
             end = time.time()
             Time_elapsed = end - start
             print("Item Time_elapsed = ", Time_elapsed)
@@ -73,4 +78,3 @@ def download_bucket_contents(bucket_name):
         print("CLIENT ERROR: {0}\n".format(be))
     except Exception as e:
         print("Unable to retrieve bucket contents: {0}".format(e))
-
