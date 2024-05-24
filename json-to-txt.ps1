@@ -43,24 +43,24 @@ foreach ($key in $jsonContent.imports.PSObject.Properties.Name) {
     }
 }
 
-$maxNameLength = [math]::Max($maxNameLength, 20)
-$maxVersionLength = [math]::Max($maxVersionLength, 7)
+$maxNameLength = [math]::Max($maxNameLength, 30)
+$maxVersionLength = [math]::Max($maxVersionLength, 10)
 $maxUrlLength = [math]::Max($maxUrlLength, 50)
 
 $dateTime = Get-Date -Format "MM/dd/yyyy HH:mm:ss"
 
 $output = "HPX Build Date: $dateTime`n"
 $output += "HPX Build Version: $buildVersion`n`n"
-$output += "| PACKAGE NAME (features) " + " " * ($maxNameLength - 20) + "| VERSION " + " " * ($maxVersionLength - 7) + "| URL" + " " * ($maxUrlLength - 3) + "|`n"
-$output += "|" + "-" * ($maxNameLength + 2) + "|" + "-" * ($maxVersionLength + 8) + "|" + "-" * ($maxUrlLength + 3) + "|`n"
+$output += "| PACKAGE NAME (features)" + " " * ($maxNameLength - 23) + " | VERSION" + " " * ($maxVersionLength - 7) + " | URL" + " " * ($maxUrlLength - 3) + " |`n"
+$output += "|" + "-" * ($maxNameLength + 2) + "|" + "-" * ($maxVersionLength + 2) + "|" + "-" * ($maxUrlLength + 2) + "|`n"
 
 foreach ($key in $jsonContent.imports.PSObject.Properties.Name) {
     $name = $key
     $url = $jsonContent.imports.$key
     $version = Get-VersionFromUrl -url $url
-    $output += "| " + $name + " " * ($maxNameLength - $name.Length + 1) + "| " + $version + " " * ($maxVersionLength - $version.Length + 1) + "| " + $url + " " * ($maxUrlLength - $url.Length + 1) + "|`n"
+    $output += "| " + $name + " " * ($maxNameLength - $name.Length) + " | " + $version + " " * ($maxVersionLength - $version.Length) + " | " + $url + " " * ($maxUrlLength - $url.Length) + " |`n"
 }
 
 Set-Content -Path $outputFilePath -Value $output -Force
 
-Write-Host "Readable text file has been created at $outputFilePath"
+Write-Host "Text file has been created at $outputFilePath"
