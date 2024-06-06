@@ -1,29 +1,4 @@
-# Variables
-$url = "https://s3.us-south.cloud-object-storage.appdomain.cloud/pnc-temp-retrieval-bkt-ritm3590766-04-29-2024/mongodb/maverick-transactions/Transactions.archive?AWSAccessKeyId=883a402c51dc4c5a98f8239623fed&Signature=0%2B2dxgHLXSZedL0TGJKDqapuA%2F%3B%3B%3D&Expires=1715106286"
-$outputFilePath = "C:\Users\jp72963\Downloads\Transactions.archive"
-$chunkSize = 10MB  # Configurable chunk size
+Firefox may not recognize the certificate authority used by edd3.ntrs.com. Verify that the certificate is correctly installed and trusted in Firefox.
 
-# Download the file
-Invoke-WebRequest -Uri $url -OutFile $outputFilePath
 
-# Function to split file into chunks
-Function Split-File {
-    param (
-        [string]$File,
-        [int]$Size
-    )
-    $buffer = New-Object byte[] $Size
-    $stream = [System.IO.File]::OpenRead($File)
-    $chunkNr = 0
-
-    while ($bytesRead = $stream.Read($buffer, 0, $buffer.Length)) {
-        $chunkPath = "$($File).part$chunkNr"
-        [System.IO.File]::WriteAllBytes($chunkPath, $buffer[0..($bytesRead-1)])
-        $chunkNr++
-    }
-
-    $stream.Close()
-}
-# Split the downloaded file into chunks
-Split-File -File $outputFilePath -Size $chunkSize
-
+To do this, go to Firefox's Options > Privacy & Security > Certificates > View Certificates. Ensure that the certificate authority is listed and trusted.
