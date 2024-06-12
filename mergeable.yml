@@ -1,0 +1,25 @@
+version: 2
+mergeable:
+  # Greeting a contributor and Requesting reviewers to review the PR
+  - when: pull_request.opened
+    name: 'Greet a contributor'
+    validate: []
+    pass:
+      # Request to review the PR
+      - do: request_review
+        teams:
+          - 'hpx-devops'
+
+      # Assign the PR to the author
+      - do: assign
+        assignees: ['@author']
+
+      # Greeting a contributor
+      - do: comment
+        payload:
+          body: >
+            Thanks for creating a pull request! The team will be reviewing your changes shortly. Please respond promptly to any feedback or change requests.
+
+  pass:
+    - do: checks
+      status: 'success'
