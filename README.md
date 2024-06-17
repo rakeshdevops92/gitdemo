@@ -1,24 +1,29 @@
-# GitHub Repository Team Permission and File Management Script
+# Repository Automation with Mergeable
 
-This PowerShell script is designed to manage team permissions and create necessary configuration files across multiple repositories in a GitHub organization. Specifically, it ensures that the `hpx-devops` team has the required permissions on each repository and creates or updates specific files (`CODEOWNERS` and `mergeable.yml`) if they do not already exist.
+This repository uses the Mergeable GitHub App to automate and streamline pull request (PR) management. The rules specified in the `mergeable.yml` file help manage PR interactions effectively.
 
-## Prerequisites
+## Configuration Details
 
-- **GitHub Personal Access Token (PAT)**: The token should have the necessary permissions to manage team access and repository contents.
-- **PowerShell**: Ensure PowerShell is installed on the system where the script will be executed.
-- **Repository List File**: A text file containing a list of repository names (one per line) that you want to manage.
+### `mergeable.yml`
 
-## Usage
+The `mergeable.yml` file contains rules that automate several key actions on pull requests:
 
-### Parameters
+1. **Greet a Contributor and Request Reviewers**
+   - **Trigger**: When a pull request is opened.
+   - **Actions**:
+     - **Request Review**: Automatically requests reviews from specified senior reviewer teams based on the PR's content (Android, Apple, Windows platforms).
+     - **Assign PR**: Assigns the PR to the author for tracking and responsibility.
+     - **Comment**: Posts a welcoming comment thanking the contributor and informing them that the team will review the changes shortly.
 
-- **token**: (Optional) GitHub Personal Access Token. If not provided, it should be securely handled in your Azure Pipelines.
-- **repositorylist**: (Mandatory) Path to the text file containing the list of repositories.
+2. **Ensure Compliance and Approvals**
+   - **Trigger**: On any updates to PRs, including reviews, status changes, and checks.
+   - **Validation**:
+     - Requires at least two approvals from code owners, ensuring that changes are thoroughly vetted.
+   - **Actions**:
+     - Marks checks as successful only after meeting the required approvals, maintaining high code quality and adherence to project standards.
 
-### Script Execution
+### Summary
 
-1. **Save the Script**: Save the PowerShell script to a file, e.g., `UpdateRepos.ps1`.
-2. **Prepare the Repository List**: Create a text file (e.g., `repositorylist.txt`) with the names of the repositories you want to manage, one per line.
-3. **Run the Script Locally**: You can test the script locally using the following command:
-   ```powershell
-   ./UpdateRepos.ps1 -token "YOUR_GITHUB_PAT" -repositorylist "path/to/repositorylist.txt"
+These automations facilitate a more efficient PR review process, ensure consistent communication, and maintain high standards of code integrity and compliance.
+ to open an issue or submit a pull request if you have suggestions or need assistance.
+
