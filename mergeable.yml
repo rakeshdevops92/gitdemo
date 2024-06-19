@@ -1,14 +1,16 @@
 version: 2
 mergeable:
-  # Greeting a contributor and Requesting reviewers to review the PR
+  # Greeting a contributor and requesting reviewers to review the PR
   - when: pull_request.opened
     name: 'Greet a contributor'
     validate: []
     pass:
-      # Request to review the PR
+      # Request seniors to review the PR
       - do: request_review
-        teams:
-          - 'hpx-devops'
+        users:
+          - senior-reviewers-android
+          - senior-reviewers-apple
+          - senior-reviewers-windows
 
       # Assign the PR to the author
       - do: assign
@@ -20,6 +22,34 @@ mergeable:
           body: >
             Thanks for creating a pull request! The team will be reviewing your changes shortly. Please respond promptly to any feedback or change requests.
 
-  pass:
-    - do: checks
-      status: 'success'
+  # Validate approvals from each team
+  - when: pull_request.*, pull_request_review.*, status.*, check_suite.*
+    name: 'Approval checks from each team'
+    validate:
+      # At least one approval from senior-reviewers-android
+      - do: approvals
+        min:
+          count: 1
+        required:
+          reviewers: ['senior-reviewers-android']
+        message: 'PR must be approved by at least one member of senior-reviewers-android'
+
+      # At least one approval from senior-reviewers-apple
+      - do: approvals
+        min:
+          count: 1
+        required:
+          reviewers: ['senior-reviewers-apple']
+        message: 'PR must be approved by at least one member of senior-reviewers-apple'
+
+      # At least one approval from senior-reviewers-windows
+      - do: approvals
+        min:
+          count: 1
+        required:
+          reviewers: ['senior-reviewers-windows']
+        message: 'PR must be approved by at least one member of senior-reviewers-windows'
+
+    pass:
+      - do: checks
+        status: 'success'
