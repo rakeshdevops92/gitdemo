@@ -12,11 +12,14 @@ function Remove-Yarnrc {
 # Function to check and update yarn version
 function Check-And-Update-Yarn-Version {
     $requiredYarnVersion = "1.22.19"
-    $currentYarnVersion = yarn --version
+    $currentYarnVersion = (yarn --version) -replace 'v', ''  # Remove 'v' prefix if it exists
 
     if ($currentYarnVersion -ne $requiredYarnVersion) {
-        Write-Output "Updating Yarn to version $requiredYarnVersion"
-        npm install -g yarn@$requiredYarnVersion
+        Write-Output "Uninstalling current Yarn version $currentYarnVersion"
+        winget uninstall --id Yarn.Yarn -e
+
+        Write-Output "Installing Yarn version $requiredYarnVersion"
+        winget install --id Yarn.Yarn -e --version $requiredYarnVersion
     } else {
         Write-Output "Yarn is already at the required version: $requiredYarnVersion"
     }
