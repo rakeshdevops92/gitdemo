@@ -27,7 +27,6 @@ def delete_old_files(currentdir, stpath):
     stgpath = stpath + "/**/*"
     original_folder = Path(str(stgpath).replace('\\\\', prfx))
 
-    # Retrieve and process files
     files = glob.iglob(str(stgpath), recursive=True)
     
     for filex in files:
@@ -36,9 +35,7 @@ def delete_old_files(currentdir, stpath):
         if not os.path.isdir(file):
             extension = os.path.splitext(str(file))[1]
             try:
-                # Check if the file meets the retention criteria
                 if os.stat(file).st_ctime < csixyrsc and os.stat(file).st_mtime < mtwoyrsc:
-                    # Fetch file details
                     ext = extension
                     z = Path(file).name
                     sz = str(os.path.getsize(str(file)))
