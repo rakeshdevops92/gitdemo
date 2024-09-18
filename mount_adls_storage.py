@@ -1,19 +1,13 @@
-storage_account_name = "teststgdl"
-client_id = dbutils.secrets.get(scope="formula1-scope", key="db-app-client-id")
-tenant_id = dbutils.secrets.get(scope="formula1-scope", key="db-tenant-id")
-client_secret = dbutils.secrets.get(scope="formula1-scope", key="db-client-secret")
-container_name = "raw"
-configs = {"fs.azure.account.auth.type": "OAuth",
-           "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
-           "fs.azure.account.oauth2.client.id": f"{client_id}",
-           "fs.azure.account.oauth2.client.secret": f"{client_secret}",
-           "fs.azure.account.oauth2.client.endpoint": f"https://login.microsoftonline.com/{tenant_id}/oauth2/token"
-          }
+inlineScript: |
+      az vm run-command invoke \
+        --resource-group $(VM_RESOURCE_GROUP) \
+        --name $(VM_NAME) \
+        --command-id RunShellScript \
+        --scripts 'sudo su && cd /opt/servicenow/mid/agent && az storage blob upload --account-name $(STORAGE_ACCOUNT_NAME) --account-key $(STORAGE_ACCOUNT_KEY) --container-name $(CONTAINER_NAME) --name $(BLOB_NAME) --file ./config.xml'
 
-def mount_adls(containername):
-    dbutils.fs.mount(
-      source = f"abfss://{containername}@{storage_account_name}.dfs.core.windows.net",
-      mount_point = f"/mnt/{storage_account_name}/{containername}",
-      extra_configs = configs)
-
- mount_adls(container_name)
+      if [ $? -eq 0 ]; then
+        echo "File uploaded successfully!"
+      else
+        echo "File upload failed."
+        exit 1
+      fi
