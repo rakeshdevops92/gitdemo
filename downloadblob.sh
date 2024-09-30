@@ -14,6 +14,19 @@ az vm run-command invoke \
 
 if [ $? -eq 0 ]; then
   echo "File downloaded successfully to ${LOCAL_PATH}!"
+  echo "Starting the service using start.sh..."
+    az vm run-command invoke \
+      --resource-group ${midrgname} \
+      --name ${midvmname} \
+      --command-id RunShellScript \
+      --scripts "sudo su && cd /opt/servicenow/mid/agent && ./start.sh"
+
+    if [ $? -eq 0 ]; then
+      echo "Service started successfully!"
+    else
+      echo "Failed to start the service."
+      exit 1
+    fi
 else
   echo "File download failed."
   exit 1
