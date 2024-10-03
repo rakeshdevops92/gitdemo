@@ -1,21 +1,20 @@
+import os
 from azure.storage.blob import BlobServiceClient
-import json
 from datetime import datetime
 import paramiko
 import logging
-import os
 import io
 
 blobServiceClient = None
 containerClient = None
 
+SSH_HOST = os.environ.get("SSH_HOST")
+SSH_PORT = int(os.environ.get("SSH_PORT", 22))
+SSH_USERNAME = os.environ.get("SSH_USERNAME")
+SSH_PASSWORD = os.environ.get("SSH_PASSWORD")
+BLOB_STORAGE_CONNECTION_STRING = os.environ.get("BLOB_STORAGE_CONNECTION_STRING")
 STORAGE_ACCOUNT_NAME = "staarkaze2022"
 CONTAINER_NAME = "oimreports"
-
-SSH_HOST = "lark201a"
-SSH_PORT = 22
-SSH_USERNAME = "pj72963"
-SSH_PASSWORD = "your_new_password"
 SSH_SOURCE_PATH = "/ark/landing_zone/oim_reports"
 
 async def main(req) -> func.HttpResponse:
@@ -31,9 +30,7 @@ async def main(req) -> func.HttpResponse:
             blob_name = filename
 
             if blobServiceClient is None:
-                blobServiceClient = BlobServiceClient.from_connection_string(
-                    os.environ.get("BLOB_STORAGE_CONNECTION_STRING")
-                )
+                blobServiceClient = BlobServiceClient.from_connection_string(BLOB_STORAGE_CONNECTION_STRING)
                 
             if containerClient is None:
                 containerClient = blobServiceClient.get_container_client(CONTAINER_NAME)
@@ -63,20 +60,17 @@ async def main(req) -> func.HttpResponse:
         resp = {"status": "fail", "errdesc": str(e)}
         return func.HttpResponse(json.dumps(resp), status_code=500, mimetype='application/json')
 
-
 def connect_to_ssh(host, port, username, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname=host, port=port, username=username, password=password)
     return ssh_client
 
-
 def list_files_via_ssh(ssh_client, source_path):
     stdin, stdout, stderr = ssh_client.exec_command(f"ls -1 {source_path}")
     files = stdout.read().decode().splitlines()
     logging.info(f"Files found via SSH: {files}")
     return files
-
 
 def download_file_via_ssh(ssh_client, source_path, filename):
     sftp = ssh_client.open_sftp()
