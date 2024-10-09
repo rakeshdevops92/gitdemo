@@ -1,13 +1,29 @@
-inlineScript: |
-      az vm run-command invoke \
-        --resource-group $(VM_RESOURCE_GROUP) \
-        --name $(VM_NAME) \
-        --command-id RunShellScript \
-        --scripts 'sudo su && cd /opt/servicenow/mid/agent && az storage blob upload --account-name $(STORAGE_ACCOUNT_NAME) --account-key $(STORAGE_ACCOUNT_KEY) --container-name $(CONTAINER_NAME) --name $(BLOB_NAME) --file ./config.xml'
+ action = req.params.get('action')
 
-      if [ $? -eq 0 ]; then
-        echo "File uploaded successfully!"
-      else
-        echo "File upload failed."
-        exit 1
-      fi
+        if not path and not action:
+            try:
+                req_body = req.get_json()
+            except ValueError:
+                pass
+            else:
+                path = req_body.get('name')
+                action = req_body.get('action')
+
+        # If action is 'list', list all files in the container
+        if action == 'list':
+            container_client = blobServiceClient.get_container_client(container_name)
+            blob_list = container_client.list_blobs()
+            
+            files = []
+            for blob in blob_list:
+                files.append({
+                    "file_name": blob.name,
+                    "size_in_bytes": blob.size,
+                    "last_modified": str(blob.last_modified)
+                })
+
+            return func.HttpResponse(
+                json.dumps({"status": "success", "files": files}),
+                status_code=200,
+                mimetype='application/json'
+            )
