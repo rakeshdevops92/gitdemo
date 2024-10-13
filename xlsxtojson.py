@@ -1,31 +1,43 @@
-import os
-import pandas as pd
 import json
 import hashlib
+from openpyxl import load_workbook
+import pandas as pd
 
 src_file = "/home/pj72963/metadata_excel/Content_Metadata_by_Cost_Center.xlsx"
 dest_file = "/home/pj72963/metadata_json/output.json"
 
 def excel_to_json():
-    df = pd.read_excel(src_file, header=None)
-    
+    wb = load_workbook(filename=src_file, data_only=True)
+    ws = wb.active
+
     metadata = {}
-    for i in range(df.shape[0]):
-        if pd.isna(df.iloc[i, 0]) and pd.isna(df.iloc[i, 2]):
+    i = 1
+    while True:
+        key_cell_A = ws.cell(row=i, column=1).value
+        value_cell_B = ws.cell(row=i, column=2).value
+        key_cell_C = ws.cell(row=i, column=3).value
+        value_cell_D = ws.cell(row=i, column=4).value
+
+        if key_cell_A is None and key_cell_C is None:
             break
-        if pd.notna(df.iloc[i, 0]) and pd.notna(df.iloc[i, 1]):
-            metadata[df.iloc[i, 0]] = df.iloc[i, 1]
-        if pd.notna(df.iloc[i, 2]) and pd.notna(df.iloc[i, 3]):
-            metadata[df.iloc[i, 2]] = df.iloc[i, 3]
+
+        if key_cell_A and value_cell_B:
+            metadata[str(key_cell_A).strip()] = str(value_cell_B).strip()
+
+        if key_cell_C and value_cell_D:
+            metadata[str(key_cell_C).strip()] = str(value_cell_D).strip()
+
+        i += 1
 
     metadata = {k: v for k, v in metadata.items() if pd.notna(v)}
 
     relation_id = hashlib.md5(str(metadata).encode()).hexdigest()
 
-    file_data_start_row = i + 2
+    file_data_start_row = i + 1
 
-    df_files = pd.read_excel(src_file, skiprows=file_data_start_row)
+    df_files = pd.read_excel(src_file, skiprows=file_data_start_row - 1, dtype=str)
     df_files.fillna("", inplace=True)
+    df_files.dropna(axis=1, how='all', inplace=True)
 
     json_output = []
 
@@ -35,9 +47,8 @@ def excel_to_json():
         "record_metadata": metadata
     })
 
-    for index, row in df_files.iterrows():
-        file_metadata = {col_name: row[col_name] for col_name in df_files.columns if pd.notna(row[col_name]) and row[col_name] != ""}
-        
+    for _, row in df_files.iterrows():
+        file_metadata = {col_name: row[col_name] for col_name in df_files.columns if row[col_name] != ""}
         if file_metadata:
             json_output.append({
                 "operation": "upload_new_file",
