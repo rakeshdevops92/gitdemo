@@ -4,7 +4,6 @@ import json
 import hashlib
 import openpyxl
 
-# Source and destination directories (modify these as necessary)
 src_dir = "/home/pk45295/metadata_excel/"
 dest_dir = "/home/pk45295/metadata_json/"
 
@@ -19,7 +18,7 @@ def exceltojson():
             Worksheet = newWorkbook["mapping"]
 
             count = -2  # Initialize count
-            for column_data in Worksheet['L']:  # Assuming column L has relevant data
+            for column_data in Worksheet['L']: 
                 filename = os.path.basename(column_data.value)
                 pathname = os.path.dirname(column_data.value)
                 file_extension = os.path.splitext(column_data.value)[1].strip()
@@ -42,7 +41,7 @@ def exceltojson():
                 json_first = {
                     "operation": "create_record",
                     "relation_id": relation_id,
-                    "record_metadata": json_excel[count]  # Assuming row corresponds to the data
+                    "record_metadata": json_excel[count]
                 }
 
                 json_first_final = [json_first]
