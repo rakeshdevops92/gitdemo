@@ -2,69 +2,43 @@ import os
 import pandas as pd
 import json
 import hashlib
-import openpyxl
 
-src_dir = "/home/pk45295/metadata_excel/"
-dest_dir = "/home/pk45295/metadata_json/"
+src_file = "/home/pj72963/metadata_excel/Content_Metadata_by_Cost_Center.xlsx"
+dest_file = "/home/pj72963/metadata_json/output.json"
 
-def exceltojson():
-    for filename in os.listdir(src_dir):
-        if filename.endswith(".xlsx"):
-            excel_filename = os.path.join(src_dir, filename)
-            print(f"Processing xlsx filename: {excel_filename}")
+def excel_to_json():
+    df = pd.read_excel(src_file)
+    
+    metadata_keys = df.iloc[0:7, 0].values
+    metadata_values = df.iloc[0:7, 1].values
 
-            newWorkbook = openpyxl.load_workbook(excel_filename)
+    metadata = {metadata_keys[i]: metadata_values[i] for i in range(len(metadata_keys))}
 
-            Worksheet = newWorkbook["mapping"]
+    relation_id = hashlib.md5(str(metadata).encode()).hexdigest()
 
-            count = -2  # Initialize count
-            for column_data in Worksheet['L']: 
-                filename = os.path.basename(column_data.value)
-                pathname = os.path.dirname(column_data.value)
-                file_extension = os.path.splitext(column_data.value)[1].strip()
-                new_extension = ".json"
-                base, extension = os.path.splitext(filename)
-                json_file_name = base + new_extension
+    df_files = pd.read_excel(src_file, skiprows=7)
+    df_files.fillna("", inplace=True)
 
-                hash_text = json_file_name
-                hash_object = hashlib.md5(hash_text.encode())
-                relation_id = hash_object.hexdigest()
+    json_output = []
 
-                print(f"Creating json for filename = {json_file_name}")
-                print(f"relation_id (Unique value) = {relation_id}")
+    json_output.append({
+        "operation": "create_record",
+        "relation_id": relation_id,
+        "record_metadata": metadata
+    })
 
-                excel_data_df = pd.read_excel(excel_filename, sheet_name='mapping')
+    for index, row in df_files.iterrows():
+        file_metadata = {col_name: row[col_name] for col_name in df_files.columns}
 
-                json_excel_str = excel_data_df.to_json(orient='records', date_format='iso')
-                json_excel = json.loads(json_excel_str)
+        json_output.append({
+            "operation": "upload_new_file",
+            "relation_id": relation_id,
+            "file_metadata": file_metadata
+        })
 
-                json_first = {
-                    "operation": "create_record",
-                    "relation_id": relation_id,
-                    "record_metadata": json_excel[count]
-                }
+    with open(dest_file, 'w') as json_file:
+        json.dump(json_output, json_file, indent=4)
 
-                json_first_final = [json_first]
-                with open(os.path.join(dest_dir, json_file_name), 'w') as file:
-                    json.dump(json_first_final, file, indent=4)
+    print(f"JSON file created successfully at {dest_file}")
 
-                json_second_list = []
-                with open(os.path.join(dest_dir, json_file_name), 'r') as fp:
-                    json_second_list = json.load(fp)
-
-                json_excel_two = pd.read_excel(excel_filename, sheet_name='mapping').to_json(orient='records', date_format='iso')
-                json_excel_two = json.loads(json_excel_two)
-
-                json_second_list.append({
-                    "operation": "upload_new_file",
-                    "relation_id": relation_id,
-                    "file_metadata": json_excel_two[count]
-                })
-
-                with open(os.path.join(dest_dir, json_file_name), 'w') as json_file:
-                    json.dump(json_second_list, json_file, indent=4)
-
-                print(f"Created JSON file: {json_file_name}")
-                count += 1
-
-exceltojson()
+excel_to_json()
