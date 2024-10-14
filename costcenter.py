@@ -21,7 +21,13 @@ def excel_to_json():
             break
 
         if key_cell_A and value_cell_B:
-            metadata[str(key_cell_A).strip()] = str(value_cell_B).strip()
+            key = str(key_cell_A).strip()
+            value = str(value_cell_B).strip()
+
+            # If the key is "Cost Center", pad the value with zeros as in the Excel file
+            if key.lower() == "cost center":
+                value = value.zfill(10)
+            metadata[key] = value
 
         if key_cell_C and value_cell_D:
             metadata[str(key_cell_C).strip()] = str(value_cell_D).strip()
@@ -55,8 +61,8 @@ def excel_to_json():
                 "file_metadata": file_metadata
             })
 
-    cost_center = metadata.get("Cost Center", "default").zfill(10) + ".a360"
-    dest_file = f"/home/pj72963/metadata_json/{cost_center}"
+    cost_center = metadata.get("Cost Center", "default") + ".a360"
+    dest_file = f"/home/pj72963/metadata_json/{cost_center}.json"
 
     with open(dest_file, 'w') as json_file:
         json.dump(json_output, json_file, indent=4)
