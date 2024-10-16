@@ -1,10 +1,15 @@
 import azure.functions as func
 import azure.durable_functions as df
 import logging
+import os
+
+blobServiceClient = None
+containerClient = None
 
 async def main(req: func.HttpRequest, starter: str) -> func.HttpResponse:
     blob_name = ""
     timeStartPost = ""
+    timeEndPost = ""
     fileByteArray = None
     try:
         filepath = req.params.get('filepath')
@@ -14,9 +19,9 @@ async def main(req: func.HttpRequest, starter: str) -> func.HttpResponse:
             else:
                 blob_name = key
 
-            timeStartPost = datetime.utcnow().isoformat(sep=".", timespec="milliseconds")
-            logging.info(f"Start Post File {blob_name} at {timeStartPost}")
-            fileByteArray = value.stream.read()
+        timeStartPost = datetime.utcnow().isoformat(sep="-", timespec="milliseconds")
+        logging.info(f"Start Post File {blob_name} at {timeStartPost}")
+        fileByteArray = value.stream.read()
 
         client = df.DurableOrchestrationClient(starter)
         instance_id = await client.start_new("PostOIMOrchestrator", None, {"blob_name": blob_name, "fileByteArray": fileByteArray})
