@@ -1,0 +1,20 @@
+{
+    "bindings": [
+      {
+        "authLevel": "anonymous",
+        "type": "httpTrigger",
+        "direction": "in",
+        "name": "req",
+        "route": "orchestrators/{functionName}",
+        "methods": ["post"]
+      },
+      {
+        "type": "durableClient",
+        "direction": "in",
+        "name": "starter"
+      }
+    ],
+    "scriptFile": "__init__.py",
+    "entryPoint": "main"
+  }
+  

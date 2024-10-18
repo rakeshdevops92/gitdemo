@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {
+      "type": "activityTrigger",
+      "name": "blobdata",
+      "direction": "in"
+    }
+  ],
+  "scriptFile": "__init__.py",
+  "entryPoint": "main"
+}
