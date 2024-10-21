@@ -6,6 +6,9 @@ sheet_name = 'Record Classes'
 
 df = pd.read_excel(file_path, sheet_name=sheet_name)
 
+# Strip any extra spaces in the column names
+df.columns = df.columns.str.strip()
+
 json_list = []
 
 for index, row in df.iterrows():
@@ -14,7 +17,10 @@ for index, row in df.iterrows():
     if retention_period_value == 'IND' or retention_period_value == 'LI' or retention_period_value == 'PERM' or retention_period_value == 'Life of Corporation':
         retention_period = 99999
     elif isinstance(retention_period_value, str) and 'ACT' in retention_period_value:
-        retention_period = int(retention_period_value.replace('ACT+', ''))  # For ACT+##
+        if '+' in retention_period_value:
+            retention_period = int(retention_period_value.split('+')[-1])
+        else:
+            retention_period = 0
     elif retention_period_value == 'MAX3':
         retention_period = 3 * 365
     elif retention_period_value == 'Employee Termination + 30 years':
@@ -23,9 +29,9 @@ for index, row in df.iterrows():
         retention_period = 6 * 365
     else:
         try:
-            retention_period = int(retention_period_value) * 365  # Convert years to days
+            retention_period = int(retention_period_value) * 365
         except ValueError:
-            retention_period = None  # Handle any other unexpected formats
+            retention_period = None
     
     record = {
         "record_class_code": row['Record Class Code'],
