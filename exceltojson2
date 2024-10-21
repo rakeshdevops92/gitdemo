@@ -1,0 +1,46 @@
+import pandas as pd
+import json
+
+file_path = 'your_excel_file.xlsx'  
+sheet_name = 'Record Classes'  
+
+df = pd.read_excel(file_path, sheet_name=sheet_name)
+
+json_list = []
+
+for index, row in df.iterrows():
+    retention_period_value = row['Retention Period']
+    
+    if retention_period_value == 'IND' or retention_period_value == 'LI' or retention_period_value == 'PERM' or retention_period_value == 'Life of Corporation':
+        retention_period = 99999
+    elif isinstance(retention_period_value, str) and 'ACT' in retention_period_value:
+        retention_period = int(retention_period_value.replace('ACT+', ''))  # For ACT+##
+    elif retention_period_value == 'MAX3':
+        retention_period = 3 * 365
+    elif retention_period_value == 'Employee Termination + 30 years':
+        retention_period = 30 * 365
+    elif retention_period_value == 'Li6':
+        retention_period = 6 * 365
+    else:
+        try:
+            retention_period = int(retention_period_value) * 365  # Convert years to days
+        except ValueError:
+            retention_period = None  # Handle any other unexpected formats
+    
+    record = {
+        "record_class_code": row['Record Class Code'],
+        "record_class_name": row['Record Class Name'],
+        "record_class_description": row['Record Class Description'],
+        "retention_period": retention_period,
+        "retention_trigger_field": "RecordDate" if retention_period_value in ['PERM', 'IND', 'LI', 'Life of Corporation'] else "EventDate",
+        "retention_type": "YearEnd"
+    }
+
+    json_list.append(record)
+
+json_output = json.dumps(json_list, indent=4)
+
+with open('output.json', 'w') as json_file:
+    json_file.write(json_output)
+
+print(json_output)
