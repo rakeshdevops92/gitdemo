@@ -13,6 +13,9 @@ json_list = []
 for index, row in df.iterrows():
     retention_period_value = row['Retention Period']
     
+    if isinstance(retention_period_value, str) and 'year' in retention_period_value:
+        retention_period_value = retention_period_value.replace(' years', '').replace(' year', '').strip()
+    
     if retention_period_value == 'IND' or retention_period_value == 'PERM' or retention_period_value == 'Life of Corporation':
         retention_period = 99999
     elif retention_period_value == 'ACT':
@@ -25,7 +28,7 @@ for index, row in df.iterrows():
         retention_period = 6 * 365
     else:
         try:
-            retention_period = int(retention_period_value) * 365 
+            retention_period = int(retention_period_value) * 365
         except ValueError:
             retention_period = None
     
