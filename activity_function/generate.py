@@ -3,7 +3,7 @@ import os
 # Define the folder structure and files
 folders_and_files = {
     "orchestrator_function": {
-        "orchestrator_function.py": """import azure.functions as func
+        "__init__.py": """import azure.functions as func
 import azure.durable_functions as df
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
@@ -33,7 +33,7 @@ main = df.Orchestrator.create(orchestrator_function)
 """
     },
     "BlobListingActivity": {
-        "BlobListingActivity.py": """import os
+        "__init__.py": """import os
 import json
 from azure.storage.blob import BlobServiceClient
 from azure.identity import ManagedIdentityCredential
@@ -82,7 +82,7 @@ async def main(request_data: dict) -> dict:
 """
     },
     "BlobDownloadActivity": {
-        "BlobDownloadActivity.py": """import os
+        "__init__.py": """import os
 import re
 from azure.storage.blob.aio import BlobServiceClient
 from azure.identity.aio import ManagedIdentityCredential
@@ -141,7 +141,7 @@ async def main(request_data: dict) -> dict:
 """
     },
     "DurableHttpStart": {
-        "DurableHttpStart.py": """import azure.functions as func
+        "__init__.py": """import azure.functions as func
 import azure.durable_functions as df
 import logging
 import json
