@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {
+      "name": "request_data",
+      "type": "activityTrigger",
+      "direction": "in"
+    }
+  ]
+}
