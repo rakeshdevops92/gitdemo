@@ -13,7 +13,6 @@ resource_client = ResourceManagementClient(credential, subscription_id)
 compute_client = ComputeManagementClient(credential, subscription_id)
 network_client = NetworkManagementClient(credential, subscription_id)
 
-# Using app names from your table: VP, HighNat, NVP, IVP, INVP, 5GC
 app_names = ["VP", "HighNat", "NVP", "IVP", "INVP", "5GC"]
 
 def get_resource_groups_with_apps():
