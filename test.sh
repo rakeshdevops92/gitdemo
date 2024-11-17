@@ -1,65 +1,56 @@
 #!/bin/bash
 
+# Logging function
 log() {
-    local level="$1"
-    local message="$2"
+    local level=$1
+    local message=$2
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
-get_files_in_range() {
-    local directory="$1"
-    local start_range="$2"
-    local end_range="$3"
-    local matched_files=()
+directory="/ark/landing_zone/manifest/metadata_json/"
+start_major=3
+start_minor=24
+end_major=3
+end_minor=26
+matched_files=()
 
-    log "INFO" "Starting to process files in directory: $directory"
-    log "INFO" "Looking for files in range: $start_range to $end_range"
+log "INFO" "Script execution started."
 
-    IFS='-' read -r start_major start_minor <<< "$start_range"
-    IFS='-' read -r end_major end_minor <<< "$end_range"
-
-    for file in "$directory"/*; do
-        if [[ "$file" =~ _Metadata([0-9]+)_([0-9]+)\.a360$ ]]; then
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            log "DEBUG" "Processing file: $file (Major: $major, Minor: $minor)"
-            if (( start_major <= major && major <= end_major && start_minor <= minor && minor <= end_minor )); then
-                log "INFO" "File $file matches the range criteria"
-                matched_files+=("$file")
-            else
-                log "DEBUG" "File $file does not match the range criteria"
-            fi
-        else
-            log "WARNING" "File $file does not match the naming pattern"
+# Loop through files
+for file in "$directory"/*; do
+    filename=$(basename "$file")
+    if [[ $filename =~ _Metadata([0-9]+)_([0-9]+)\.a360$ ]]; then
+        major=${BASH_REMATCH[1]}
+        minor=${BASH_REMATCH[2]}
+        if (( major >= start_major && major <= end_major && minor >= start_minor && minor <= end_minor )); then
+            matched_files+=("$filename")
         fi
-    done
+    fi
+done
 
-    log "INFO" "Finished processing files in directory: $directory"
-    log "INFO" "Total matching files: ${#matched_files[@]}"
-
-    echo "${matched_files[@]}"
-}
-
-directory_path="/ark/landing_zone/manifest/metadata_json/AZL/"
-start_range="3-24"
-end_range="3-26"
-
-log "INFO" "Script execution started"
-
-if [[ ! -d "$directory_path" ]]; then
-    log "ERROR" "Directory does not exist: $directory_path"
+if [ ${#matched_files[@]} -eq 0 ]; then
+    log "WARN" "No matching files found for the given range."
     exit 1
 fi
 
-matching_files=$(get_files_in_range "$directory_path" "$start_range" "$end_range")
+log "INFO" "Matching files: ${matched_files[*]}"
 
-if [[ -z "$matching_files" ]]; then
-    log "WARNING" "No files found matching the range $start_range to $end_range"
-else
-    log "INFO" "Matching files:"
-    for file in $matching_files; do
-        log "INFO" "$file"
-    done
-fi
+# Process matched files
+for file in "${matched_files[@]}"; do
+    full_path="$directory$file"
+    log "INFO" "Processing file: $full_path"
 
-log "INFO" "Script execution completed"
+    # Example operation (e.g., upload to Azure)
+    curl -X POST "https://your-api-endpoint?file=$file" \
+        -F "file=@$full_path" \
+        -H "accept: application/json" \
+        --cert "/path/to/cert.pem" --pass "yourpassword"
+
+    if [ $? -ne 0 ]; then
+        log "ERROR" "Failed to process file: $file"
+    else
+        log "INFO" "Successfully processed file: $file"
+    fi
+done
+
+log "INFO" "Script execution completed."
