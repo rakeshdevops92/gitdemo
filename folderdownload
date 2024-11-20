@@ -1,0 +1,71 @@
+from datetime import datetime
+import os
+import logging
+import traceback
+import json
+from azure.storage.blob.aio import BlobServiceClient
+from azure.identity.aio import ManagedIdentityCredential
+
+blobServiceClient = None
+
+async def main(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        # Get the folder name from the request
+        folder_name = req.params.get('folder')
+        if not folder_name:
+            try:
+                req_body = req.get_json()
+                folder_name = req_body.get('folder')
+            except ValueError:
+                pass
+        
+        if not folder_name:
+            return func.HttpResponse(
+                json.dumps({"status": "fail", "errdesc": "You need to pass the parameter 'folder' to download the blobs"}),
+                status_code=400,
+                mimetype="application/json"
+            )
+
+        logging.info(f"Starting to process folder: {folder_name}")
+        
+        azure_container_name = "a360root"
+        global blobServiceClient
+        if blobServiceClient is None:
+            blobServiceClient = BlobServiceClient(
+                os.environ.get("BLOB_STORAGE_ACCOUNT_URL"),
+                credential=ManagedIdentityCredential()
+            )
+        
+        container_client = blobServiceClient.get_container_client(azure_container_name)
+        
+        blob_list = container_client.list_blobs(name_starts_with=f"{folder_name}/")
+        
+        from io import BytesIO
+        import zipfile
+        memory_file = BytesIO()
+        with zipfile.ZipFile(memory_file, 'w') as zf:
+            async for blob in blob_list:
+                logging.info(f"Downloading blob: {blob.name}")
+                blob_client = container_client.get_blob_client(blob.name)
+                blob_data = await blob_client.download_blob()
+                blob_bytes = await blob_data.content_as_bytes()
+                # Write each blob into the zip file
+                zf.writestr(blob.name[len(folder_name)+1:], blob_bytes)
+        
+        memory_file.seek(0)
+        headers = {
+            "Content-Type": "application/zip",
+            "Content-Disposition": f"attachment; filename={folder_name}.zip"
+        }
+        return func.HttpResponse(
+            body=memory_file.getvalue(),
+            headers=headers,
+            status_code=200
+        )
+    except Exception as ex:
+        logging.error(f"Error: {traceback.format_exc()}")
+        return func.HttpResponse(
+            json.dumps({"status": "fail", "errdesc": str(ex)}),
+            status_code=500,
+            mimetype="application/json"
+        )
