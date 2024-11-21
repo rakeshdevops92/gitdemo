@@ -7,7 +7,7 @@ resource "azurerm_app_service_plan" "example" {
   name                = "api-appserviceplan-pro-4270"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  zone_redundant       = true
+  zone_redundant    = true
   kind = "elastic"
 
   sku {
