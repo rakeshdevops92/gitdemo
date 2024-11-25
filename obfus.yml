@@ -1,0 +1,52 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  BuildConfiguration: 'Release'
+  NugetSource: 'https://hpswapps.pkgs.visualstudio.com/PSSW/_packaging/hpaf/nuget/v3/index.json'
+  ApiKey: $(nugetApiKey)  # Securely stored API key
+  PackageVersion: '1.0.0.$(Build.BuildId)'  # Incremental version based on build ID
+
+steps:
+- task: Checkout@1
+  displayName: 'Checkout Source Code'
+
+- task: NuGetCommand@2
+  displayName: 'Restore NuGet Packages'
+  inputs:
+    command: 'restore'
+    restoreSolution: '**/*.sln'
+
+- task: PowerShell@2
+  displayName: 'Update Assembly Version'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $assemblyFile = "C:\hpx_code\hpx-winclient\nugets\HP.PenControl\HP.PenControl\Properties\AssemblyInfo.cs"
+      (Get-Content $assemblyFile) -replace '\[assembly: AssemblyVersion\(".*"\)\]', "[assembly: AssemblyVersion(\"$(PackageVersion)\")]" | Set-Content $assemblyFile
+
+- task: VSBuild@1
+  displayName: 'Build Solution'
+  inputs:
+    solution: '**/*.sln'
+    msbuildArgs: '/p:Configuration=$(BuildConfiguration)'
+
+- task: PowerShell@2
+  displayName: 'Create NuGet Package'
+  inputs:
+    targetType: 'inline'
+    script: |
+      nuget pack C:\hpx_code\hpx-winclient\nugets\HP.PenControl\HP.PenControl.csproj -Build -Symbols -Properties Configuration=$(BuildConfiguration) -Version $(PackageVersion)
+
+- task: NuGetCommand@2
+  displayName: 'Push NuGet Package'
+  inputs:
+    command: 'push'
+    packagesToPush: '**/*.nupkg'
+    nuGetFeedType: 'external'
+    publishVstsFeed: false
+    externalFeedUrl: $(NugetSource)
+    externalFeedApiKey: $(ApiKey)
