@@ -1,7 +1,7 @@
-from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient
 import os
 import logging
 import json
+from azure.storage.blob import BlobServiceClient
 from azure.identity import ManagedIdentityCredential
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
