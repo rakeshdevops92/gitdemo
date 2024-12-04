@@ -1,0 +1,19 @@
+- task: PowerShell@2
+  displayName: 'Check for Changes in PenControl'
+  inputs:
+    targetType: 'inline'
+    workingDirectory: $(Build.Repository.LocalPath)
+    script: |
+      $targetPath = "$(Build.Repository.LocalPath)\nugets\HP.PenControl"
+
+      if (-Not (Test-Path $targetPath)) {
+          Write-Host "Error: Target path does not exist: $targetPath"
+          exit 1
+      }
+      git diff --quiet --exit-code HEAD -- $targetPath
+      if ($LASTEXITCODE -ne 0) {
+          Write-Host "Changes detected in $targetPath. Proceeding with the build."
+      } else {
+          Write-Host "No changes detected in $targetPath. Skipping the build."
+          exit 0
+      }
