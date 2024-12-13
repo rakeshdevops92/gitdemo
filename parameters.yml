@@ -1,0 +1,12 @@
+parameters:
+  - name: nugets
+    type: object
+    default:
+      - name: "HP.PenControl"
+        path: "nugets/HP.PenControl"
+        assemblyFile: "Properties/AssemblyInfo.cs"
+        projectFile: "HP.PenControl.sln"
+      - name: "HP.AccessoryControl"
+        path: "nugets/HP.AccessoryControl"
+        assemblyFile: "Properties/AssemblyInfo.cs"
+        projectFile: "HP.AccessoryControl.sln"
