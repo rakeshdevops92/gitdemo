@@ -1,12 +1,100 @@
 parameters:
-  - name: nugets
-    type: object
-    default:
-      - name: "HP.PenControl"
-        path: "nugets/HP.PenControl"
-        assemblyFile: "Properties/AssemblyInfo.cs"
-        projectFile: "HP.PenControl.sln"
-      - name: "HP.AccessoryControl"
-        path: "nugets/HP.AccessoryControl"
-        assemblyFile: "Properties/AssemblyInfo.cs"
-        projectFile: "HP.AccessoryControl.sln"
+  - name: nugetName
+    type: string
+    default: "HP.PenControl"
+    values:
+      - "HP.PenControl"
+      - "HP.AccessoryControl"
+      - "HP.AppFramework.AuthService"
+      - "HP.AppFramework.LoggingDE"
+      - "HP.AppFramework.Win32DE"
+      - "HP.AudioControl"
+      - "HP.Calculator"
+      - "HP.CameraStatus"
+
+jobs:
+  - job: BuildNuGet
+    displayName: "Build Selected NuGet Package"
+    timeoutInMinutes: 250
+    steps:
+      - checkout: self
+        fetchDepth: 100
+        clean: true
+
+      - task: PowerShell@2
+        displayName: "Set NuGet Details Dynamically"
+        inputs:
+          targetType: inline
+          script: |
+            $nugetMappings = @{
+              "HP.PenControl"              = @{ Path="nugets/HP.PenControl"; Solution="HP.PenControl.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.AccessoryControl"        = @{ Path="nugets/HP.AccessoryControl"; Solution="HP.AccessoryControl.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.AppFramework.AuthService"= @{ Path="nugets/HP.AppFramework.AuthService"; Solution="HP.AppFramework.AuthService.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.AppFramework.LoggingDE"  = @{ Path="nugets/HP.AppFramework.LoggingDE"; Solution="HP.AppFramework.LoggingDE.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.AppFramework.Win32DE"    = @{ Path="nugets/HP.AppFramework.Win32DE"; Solution="HP.AppFramework.Win32DE.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.AudioControl"            = @{ Path="nugets/HP.AudioControl"; Solution="HP.AudioControl.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.Calculator"              = @{ Path="nugets/HP.Calculator"; Solution="HP.Calculator.sln"; Assembly="Properties/AssemblyInfo.cs" }
+              "HP.CameraStatus"            = @{ Path="nugets/HP.CameraStatus"; Solution="HP.CameraStatus.sln"; Assembly="Properties/AssemblyInfo.cs" }
+            }
+
+            $selectedNuget = "${{ parameters.nugetName }}"
+            $details = $nugetMappings[$selectedNuget]
+            
+            Write-Host "##vso[task.setvariable variable=nugetPath]$($details.Path)"
+            Write-Host "##vso[task.setvariable variable=solutionFile]$($details.Solution)"
+            Write-Host "##vso[task.setvariable variable=assemblyFile]$($details.Assembly)"
+            Write-Host "Selected NuGet: $selectedNuget"
+            Write-Host "Path: $($details.Path)"
+            Write-Host "Solution File: $($details.Solution)"
+            Write-Host "Assembly File: $($details.Assembly)"
+
+      - script: |
+          echo "Building NuGet Project: ${{ parameters.nugetName }}"
+          echo "Path: $(nugetPath)"
+          echo "Solution File: $(solutionFile)"
+          echo "Assembly File: $(assemblyFile)"
+        displayName: "Show Selected NuGet Info"
+
+      - task: PowerShell@2
+        displayName: "Update Assembly Version"
+        inputs:
+          targetType: inline
+          script: |
+            $assemblyFile = "$(Build.SourcesDirectory)\$(nugetPath)\$(assemblyFile)"
+            if (-Not (Test-Path $assemblyFile)) {
+                Write-Host "Error: Assembly file not found at $assemblyFile"
+                exit 1
+            }
+            $newVersion = "$(Build.BuildNumber)"
+            (Get-Content $assemblyFile) -replace 'AssemblyVersion\\(".*"\\)', "AssemblyVersion(`"$newVersion`")" | Set-Content $assemblyFile
+            (Get-Content $assemblyFile) -replace 'AssemblyFileVersion\\(".*"\\)', "AssemblyFileVersion(`"$newVersion`")" | Set-Content $assemblyFile
+            Write-Host "Assembly Version Updated to $newVersion"
+
+      - task: NuGetCommand@2
+        displayName: "Restore NuGet Packages"
+        inputs:
+          command: restore
+          restoreSolution: "$(Build.SourcesDirectory)\$(nugetPath)\$(solutionFile)"
+
+      - task: VSBuild@1
+        displayName: "Build Solution"
+        inputs:
+          solution: "$(Build.SourcesDirectory)\$(nugetPath)\$(solutionFile)"
+          platform: "Any CPU"
+          configuration: "Release"
+
+      - task: PowerShell@2
+        displayName: "Pack NuGet Package"
+        inputs:
+          targetType: inline
+          script: |
+            nuget pack "$(Build.SourcesDirectory)\$(nugetPath)\$(solutionFile)" -Properties Configuration=Release
+            Write-Host "NuGet Package Packed for ${{ parameters.nugetName }}"
+
+      - task: PowerShell@2
+        displayName: "Push NuGet Package"
+        inputs:
+          targetType: inline
+          script: |
+            nuget push "$(Build.SourcesDirectory)\$(nugetPath)\*.nupkg" -Source "YourNuGetFeedURL" -ApiKey "YourNuGetApiKey"
+            Write-Host "NuGet Package Pushed for ${{ parameters.nugetName }}"
