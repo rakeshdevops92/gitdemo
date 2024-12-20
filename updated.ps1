@@ -1,12 +1,14 @@
 targetType: 'inline'
 workingDirectory: $(Build.Repository.LocalPath)/$(nugetPath)/${{ parameters.nugetName }}
 script: |
+  # Define paths dynamically based on selected nugetName
   $AssemblyFile = "$(Build.Repository.LocalPath)\$(nugetPath)\${{ parameters.nugetName }}\Properties\AssemblyInfo.cs"
   $DesktopCsproj = "$(Build.Repository.LocalPath)\apps\HPX\windows\DesktopExtension\DesktopExtension.csproj"
   $HpxCsproj = "$(Build.Repository.LocalPath)\apps\HPX\windows\HP.HPX\HP.HPX.csproj"
   $NewVersion = "${{ parameters.PackageVersion }}"
   $NugetName = "${{ parameters.nugetName }}"
 
+  # Files to check
   $FilesToCheck = @($AssemblyFile, $DesktopCsproj, $HpxCsproj)
 
   foreach ($file in $FilesToCheck) {
@@ -16,17 +18,21 @@ script: |
       }
   }
 
+  # Update Assembly Version and File Version
   (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyVersion\(".*"\)\]', "[assembly: AssemblyVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
   (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyFileVersion\(".*"\)\]', "[assembly: AssemblyFileVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
   Write-Host "Successfully updated AssemblyVersion and AssemblyFileVersion in $AssemblyFile"
 
-  (Get-Content $DesktopCsproj) -replace "($NugetName.*?, Version=)[0-9\.]+", "`$1$NewVersion" `
-                              -replace "(HintPath.*?$NugetName\\.*?\\).*?(\")", "`$1$NewVersion`$2" | Set-Content $DesktopCsproj
+  # Update DesktopExtension.csproj References
+  (Get-Content $DesktopCsproj) -replace "($NugetName.*?, Version=)[0-9\.]+", "$1$NewVersion" `
+                              -replace "(HintPath.*?$NugetName\\.*?\\)(.*?)(\")", "$1$NewVersion$3" | Set-Content $DesktopCsproj
   Write-Host "Successfully updated $NugetName references in $DesktopCsproj"
 
-  (Get-Content $HpxCsproj) -replace "(<Content Include=\".*?$NugetName\\.*?\\).*?(\")", "`$1$NewVersion`$2" | Set-Content $HpxCsproj
+  # Update HP.HPX.csproj Content References
+  (Get-Content $HpxCsproj) -replace "(<Content Include=\".*?$NugetName\\.*?\\)(.*?)(\")", "$1$NewVersion$3" | Set-Content $HpxCsproj
   Write-Host "Successfully updated $NugetName content references in $HpxCsproj"
 
+  # Log file contents post update
   Write-Host "Contents of AssemblyInfo.cs post update:"
   Get-Content $AssemblyFile | ForEach-Object { Write-Host $_ }
 
