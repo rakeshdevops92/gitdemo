@@ -8,6 +8,17 @@ script: |
   $NewVersion = "${{ parameters.PackageVersion }}"
   $NugetName = "${{ parameters.nugetName }}"
 
+  # Echo all variables for debugging
+  Write-Host "### Debugging Variables ###"
+  Write-Host "Build.Repository.LocalPath: $(Build.Repository.LocalPath)"
+  Write-Host "nugetPath: $(nugetPath)"
+  Write-Host "NugetName: $NugetName"
+  Write-Host "PackageVersion: $NewVersion"
+  Write-Host "AssemblyFile Path: $AssemblyFile"
+  Write-Host "DesktopCsproj Path: $DesktopCsproj"
+  Write-Host "HpxCsproj Path: $HpxCsproj"
+  Write-Host "############################"
+
   # Files to check
   $FilesToCheck = @($AssemblyFile, $DesktopCsproj, $HpxCsproj)
 
