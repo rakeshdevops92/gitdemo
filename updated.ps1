@@ -30,17 +30,17 @@ script: |
   }
 
   # Update Assembly Version and File Version
-  (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyVersion\(".*"\)\]', "[assembly: AssemblyVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
-  (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyFileVersion\(".*"\)\]', "[assembly: AssemblyFileVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
+  (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyVersion\(".*?"\)\]', "[assembly: AssemblyVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
+  (Get-Content $AssemblyFile) -replace '\[assembly: AssemblyFileVersion\(".*?"\)\]', "[assembly: AssemblyFileVersion(`"$NewVersion`")]" | Set-Content $AssemblyFile
   Write-Host "Successfully updated AssemblyVersion and AssemblyFileVersion in $AssemblyFile"
 
   # Update DesktopExtension.csproj References
-  (Get-Content $DesktopCsproj) -replace "($NugetName.*?, Version=)[0-9\.]+", "$1$NewVersion" `
-                              -replace "(HintPath.*?$NugetName\\.*?\\)(.*?)(\")", "$1$NewVersion$3" | Set-Content $DesktopCsproj
+  (Get-Content $DesktopCsproj) -replace "($NugetName.*?, Version=)[0-9\.]+", "`$1$NewVersion" `
+                              -replace "(HintPath.*?$NugetName\\.*?\\).*?(\")", "`$1$NewVersion`$2" | Set-Content $DesktopCsproj
   Write-Host "Successfully updated $NugetName references in $DesktopCsproj"
 
   # Update HP.HPX.csproj Content References
-  (Get-Content $HpxCsproj) -replace "(<Content Include=\".*?$NugetName\\.*?\\)(.*?)(\")", "$1$NewVersion$3" | Set-Content $HpxCsproj
+  (Get-Content $HpxCsproj) -replace "(<Content Include=\".*?$NugetName\\.*?\\).*?(\")", "`$1$NewVersion`$2" | Set-Content $HpxCsproj
   Write-Host "Successfully updated $NugetName content references in $HpxCsproj"
 
   # Log file contents post update
