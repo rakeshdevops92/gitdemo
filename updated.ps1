@@ -1,12 +1,14 @@
 targetType: 'inline'
 workingDirectory: $(Build.Repository.LocalPath)/$(nugetPath)/${{ parameters.nugetName }}
 script: |
-  # Define paths dynamically based on selected nugetName
-  $AssemblyFile = "$(Build.Repository.LocalPath)\$(nugetPath)\${{ parameters.nugetName }}\Properties\AssemblyInfo.cs"
+  # Define paths dynamically based on selected nugetName and packageVersion passed as environment variables
+  $NugetName = "${env:NugetName}"
+  $NewVersion = "${env:PackageVersion}"
+
+  # Paths
+  $AssemblyFile = "$(Build.Repository.LocalPath)\$(nugetPath)\$NugetName\Properties\AssemblyInfo.cs"
   $DesktopCsproj = "$(Build.Repository.LocalPath)\apps\HPX\windows\DesktopExtension\DesktopExtension.csproj"
   $HpxCsproj = "$(Build.Repository.LocalPath)\apps\HPX\windows\HP.HPX\HP.HPX.csproj"
-  $NewVersion = "${{ parameters.PackageVersion }}"
-  $NugetName = "${{ parameters.nugetName }}"
 
   # Echo all variables for debugging
   Write-Host "### Debugging Variables ###"
@@ -52,3 +54,6 @@ script: |
 
   Write-Host "Contents of HP.HPX.csproj post update:"
   Get-Content $HpxCsproj | ForEach-Object { Write-Host $_ }
+env:
+  NugetName: ${{ parameters.nugetName }}
+  PackageVersion: ${{ parameters.PackageVersion }}
