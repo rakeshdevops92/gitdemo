@@ -1,0 +1,36 @@
+trigger: none
+
+parameters:
+  - name: region
+    displayName: "Select Region"
+    type: string
+    values:
+      - westus2
+      - eastus2
+      - southcentralus
+      - westus3
+
+  - name: base_url
+    displayName: "Base URL"
+    type: string
+    default: "https://install.service-now.com/glide/distribution/builds/package/app-signed/mid"
+
+  - name: year
+    displayName: "Year"
+    type: string
+    default: "2024"
+
+  - name: month
+    displayName: "Month"
+    type: string
+    default: "08"
+
+  - name: day
+    displayName: "Day"
+    type: string
+    default: "31"
+
+  - name: file_name
+    displayName: "File Name"
+    type: string
+    default: "mid_washingtondc-12-20-2023_patch7-08-31-2024_1809.linux.x86-64.zip"
