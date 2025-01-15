@@ -41,11 +41,11 @@ function Update-CsprojFile {
 }
 
 # Regex for HP.HPX.csproj
-$HpxRegex = "(<Content Include=.*?$escapedNugetName\\)[^\\]+"
+$HpxRegex = "(<Content Include="".*?\\packages\\HP\.PenControl\\)[^\\]+"
 $HpxReplacement = "`$1$escapedNewVersion"
 
 # Regex for DesktopExtension.csproj
-$DesktopRegex = "(<PackageReference Include=`"$escapedNugetName`" Version=`")[^`"]+"
+$DesktopRegex = "(<PackageReference Include=""HP\.PenControl"" Version="")[^""]+"
 $DesktopReplacement = "`$1$escapedNewVersion"
 
 # Update HP.HPX.csproj
