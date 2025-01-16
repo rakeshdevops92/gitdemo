@@ -1,0 +1,69 @@
+- task: PowerShell@2
+  displayName: 'Update Assembly Version'
+  condition: eq(variables['CheckForChanges.ChangesDetected'], 'true')
+  env:
+    NugetName: ${{ parameters.nugetName }}
+    PackageVersion: ${{ parameters.packageVersion }}
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Input Variables
+      $NugetName = $env:NugetName
+      $NewVersion = $env:PackageVersion
+      $BuildPath = "$(Build.Repository.LocalPath)"
+
+      # Paths to Update
+      $AssemblyFilePath = "$BuildPath/$(nugetPath)/$NugetName/Properties/AssemblyInfo.cs"
+      $DesktopCsprojPath = "$BuildPath/apps/HPX/windows/DesktopExtension/DesktopExtension.csproj"
+      $HpxCsprojPath = "$BuildPath/apps/HPX/windows/HP.HPX/HP.HPX.csproj"
+
+      # Debugging Information
+      Write-Host "### Debugging Variables ###"
+      Write-Host "Build Path: $BuildPath"
+      Write-Host "Nuget Name: $NugetName"
+      Write-Host "New Version: $NewVersion"
+      Write-Host "Assembly File Path: $AssemblyFilePath"
+      Write-Host "Desktop Csproj Path: $DesktopCsprojPath"
+      Write-Host "Hpx Csproj Path: $HpxCsprojPath"
+      Write-Host "###########################"
+
+      # Function to update file content
+      function Update-CsprojFile {
+          param (
+              [string]$FilePath,
+              [string]$RegexPattern,
+              [string]$Replacement
+          )
+          if (Test-Path $FilePath) {
+              $FileContent = Get-Content $FilePath -Raw
+              if ($FileContent -match $RegexPattern) {
+                  $UpdatedContent = $FileContent -replace $RegexPattern, $Replacement
+                  Set-Content -Path $FilePath -Value $UpdatedContent -Encoding UTF8
+                  Write-Host "Successfully updated: $FilePath" -ForegroundColor Green
+              } else {
+                  Write-Host "No matches found in $FilePath for pattern: $RegexPattern" -ForegroundColor Yellow
+              }
+          } else {
+              Write-Host "Error: File not found: $FilePath" -ForegroundColor Red
+          }
+      }
+
+      # Regex patterns and replacements
+      $DesktopRegex = '<PackageReference Include="' + [regex]::Escape($NugetName) + '".*?Version="[^"]+"'
+      $DesktopReplacement = '<PackageReference Include="' + $NugetName + '" Version="' + $NewVersion + '"'
+
+      $HpxRegex = '<Content Include="..\packages\\' + [regex]::Escape($NugetName) + '\\.*?\\content\\.*?"'
+      $HpxReplacement = '<Content Include="..\packages\' + $NugetName + '\' + $NewVersion + '\content\WacomDll\Wacom.ISD.SettingsClient.dll"'
+
+      # Update DesktopExtension.csproj
+      Update-CsprojFile -FilePath $DesktopCsprojPath -RegexPattern $DesktopRegex -Replacement $DesktopReplacement
+
+      # Update HP.HPX.csproj
+      Update-CsprojFile -FilePath $HpxCsprojPath -RegexPattern $HpxRegex -Replacement $HpxReplacement
+
+      # Log file contents post-update
+      Write-Host "Contents of DesktopExtension.csproj post-update:"
+      Get-Content $DesktopCsprojPath | ForEach-Object { Write-Host $_ }
+
+      Write-Host "Contents of HP.HPX.csproj post-update:"
+      Get-Content $HpxCsprojPath | ForEach-Object { Write-Host $_ }
