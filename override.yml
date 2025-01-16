@@ -1,0 +1,29 @@
+- task: PowerShell@2
+  displayName: 'Override a file using Copy-Item'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $SourceFilePath = "$(Build.Repository.LocalPath)/path/to/source/file.txt" # Update this path
+      $DestinationFilePath = "$(Build.Repository.LocalPath)/path/to/destination/file.txt" # Update this path
+
+      if (Test-Path $SourceFilePath) {
+          Write-Host "Source file found: $SourceFilePath"
+      } else {
+          Write-Host "Error: Source file not found at $SourceFilePath"
+          exit 1
+      }
+
+      if (Test-Path $DestinationFilePath) {
+          Write-Host "Destination file exists. Overriding it: $DestinationFilePath"
+      } else {
+          Write-Host "Destination file does not exist. Creating it: $DestinationFilePath"
+      }
+
+      Copy-Item -Path $SourceFilePath -Destination $DestinationFilePath -Force
+
+      if (Test-Path $DestinationFilePath) {
+          Write-Host "File successfully copied to: $DestinationFilePath"
+      } else {
+          Write-Host "Error: File could not be copied to $DestinationFilePath"
+          exit 1
+      }
