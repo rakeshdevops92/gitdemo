@@ -1,14 +1,13 @@
 # Input Parameters
-$DesktopCsprojPath = "C:\path\to\DesktopExtension.csproj"  # Update with your file path
-$HpxCsprojPath = "C:\path\to\HP.HPX.csproj"               # Update with your file path
-$NugetName = "HP.PenControl"                              # Update with your NuGet package name
-$NewVersion = "1.0.3.50"                                  # Update with your new version
+$DesktopCsprojPath = "C:\Path\To\DesktopExtension.csproj"  # Replace with your file path
+$HpxCsprojPath = "C:\Path\To\HP.HPX.csproj"               # Replace with your file path
+$NugetName = "HP.PenControl"                              # NuGet package name
+$NewVersion = "1.0.3.50"                                  # New version
 
-# Escape special characters in NugetName and NewVersion
+# Escape special characters in NuGet name for regex
 $escapedNugetName = [regex]::Escape($NugetName)
-$escapedNewVersion = [regex]::Escape($NewVersion)
 
-# Function to Update a File and Test Regex
+# Function to update .csproj files
 function Update-CsprojFile {
     param (
         [string]$FilePath,
@@ -24,32 +23,31 @@ function Update-CsprojFile {
         return
     }
 
-    # Debugging: Display matching lines
-    Write-Host "Regex Pattern: $RegexPattern"
-    $matches = Get-Content $FilePath | Select-String -Pattern $RegexPattern
-    if ($matches) {
-        Write-Host "Matched Lines:"
-        $matches | ForEach-Object { Write-Host $_.Line }
-    } else {
-        Write-Host "No matches found for the regex in $FilePath" -ForegroundColor Yellow
-        return
-    }
+    # Read the file content
+    $fileContent = Get-Content $FilePath
 
-    # Perform the replacement
-    (Get-Content $FilePath) -replace $RegexPattern, $Replacement | Set-Content $FilePath -Encoding UTF8
-    Write-Host "Successfully updated $FilePath" -ForegroundColor Green
+    # Check for matches and update if found
+    $matches = $fileContent | Select-String -Pattern $RegexPattern
+    if ($matches) {
+        Write-Host "Match found. Updating..."
+        $updatedContent = $fileContent -replace $RegexPattern, $Replacement
+        Set-Content $FilePath -Value $updatedContent -Encoding UTF8
+        Write-Host "File updated successfully: $FilePath" -ForegroundColor Green
+    } else {
+        Write-Host "No matches found in $FilePath for pattern: $RegexPattern" -ForegroundColor Yellow
+    }
 }
 
-# Regex for HP.HPX.csproj
-$HpxRegex = "(<Content Include="".*?\\packages\\HP\.PenControl\\)[^\\]+"
-$HpxReplacement = "`$1$escapedNewVersion"
+# Regex patterns and replacements
 
-# Regex for DesktopExtension.csproj
-$DesktopRegex = "(<PackageReference Include=""HP\.PenControl"" Version="")[^""]+"
-$DesktopReplacement = "`$1$escapedNewVersion"
+# For HP.HPX.csproj
+$HpxRegex = '<Content Include="\.\.\\packages\\' + $escapedNugetName + '\\[^\\]+\\(.*)"'
+$HpxReplacement = '<Content Include="..\packages\' + $NugetName + '\' + $NewVersion + '\$1"'
 
-# Update HP.HPX.csproj
+# For DesktopExtension.csproj
+$DesktopRegex = '<PackageReference Include="' + $escapedNugetName + '" Version="[^"]+"'
+$DesktopReplacement = '<PackageReference Include="' + $NugetName + '" Version="' + $NewVersion + '"'
+
+# Update the files
 Update-CsprojFile -FilePath $HpxCsprojPath -RegexPattern $HpxRegex -Replacement $HpxReplacement
-
-# Update DesktopExtension.csproj
 Update-CsprojFile -FilePath $DesktopCsprojPath -RegexPattern $DesktopRegex -Replacement $DesktopReplacement
