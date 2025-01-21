@@ -1,20 +1,36 @@
-trigger:
-- main
-
-pool:
-  vmImage: 'ubuntu-latest'
-
 steps:
-- task: UsePythonVersion@0
+- task: PowerShell@2
+  displayName: "Update Version in .csproj Files"
   inputs:
-    versionSpec: '3.x'
-    addToPath: true
+    targetType: 'inline'
+    script: |
+      $inputVersion = "$(inputVersion)"
+      
+      $filePaths = @(
+          "$(Build.SourcesDirectory)\assemblyversion\HP.HPX.csproj",
+          "$(Build.SourcesDirectory)\assemblyversion\DesktopExtension.csproj"
+      )
 
-- script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install Python Dependencies'
+      function Update-VersionInCsproj {
+          param (
+              [string]$filePath,
+              [string]$version
+          )
+          
+          $content = Get-Content $filePath
+          
+          $content = $content -replace '(?<=<PackageReference Include="HP.PenControl" Version=")[^"]+', $version
+          $content = $content -replace '(?<=<Content Include="\.\.\\packages\\HP\.PenControl\\)[^\\]+', $version
+          
+          Set-Content -Path $filePath -Value $content -Encoding UTF8
+          
+          Write-Host "Updated version to $version in $filePath"
+      }
 
-- script: |
-    python code/dni/dni_client_helper.py
-  displayName: 'Run Python Script'
+      foreach ($file in $filePaths) {
+          if (Test-Path $file) {
+              Update-VersionInCsproj -filePath $file -version $inputVersion
+          } else {
+              Write-Host "File not found: $file"
+          }
+      }
