@@ -16,7 +16,7 @@ def load_config():
     with open("access.json", "r") as config_file:
         return json.load(config_file)
 
-def initialize_clients(config_param):
+def initialize_clients():
     tenant_id = os.getenv("tenant_id")
     app_id = os.getenv("app_id")
     passwd = os.getenv("passwd")
@@ -32,7 +32,7 @@ def initialize_clients(config_param):
         scope="api://df62135d-2ede-4bac-9465-a36750479690/.default",
     )
     sa_blob_client = SaBlobClient(sa_connect_str=sa_connect_str)
-    return dni_client, sa_blob_client
+    return dni_client, sa_blob_client, account_id
 
 def get_staging_client(dni_client, account_id, client_name):
     clients = dni_client.get_resources(f"/accounts/{account_id}/resources/clients")[
@@ -74,34 +74,33 @@ def delete_cloud_node(dni_client, client_id, topo_id, cn_id, reserv_id):
         f"/accounts/{client_id}/resources/assets/vpns/locations/{reserv_id}"
     )
 
-def main(method_name, **kwargs):
-    config_param = load_config()
-    dni_client, sa_blob_client = initialize_clients(config_param)
+def main(method_name):
+    dni_client, sa_blob_client, account_id = initialize_clients()
 
     context = {}
 
     methods = {
         "get_staging_client": lambda: context.update(
             client_id=get_staging_client(
-                dni_client, kwargs["account_id"], kwargs["client_name"]
+                dni_client, account_id, "default-client-name"
             )
         ),
         "create_cloud_node": lambda: context.update(
             cn_id=create_cloud_node(
                 dni_client,
                 sa_blob_client,
-                kwargs["account_id"],
-                kwargs["cn_container_name"],
-                kwargs["cn_blob_name"],
+                account_id,
+                "cloudnode-container",
+                "cloudnode.json",
             )
         ),
         "assign_location": lambda: context.update(
             reserv_id=assign_location(
                 dni_client,
                 sa_blob_client,
-                kwargs["account_id"],
-                kwargs["cn_container_name"],
-                kwargs["loc_blob_name"],
+                account_id,
+                "cloudnode-container",
+                "location.json",
                 context.get("client_id"),
                 context.get("cn_id"),
             )
@@ -109,8 +108,8 @@ def main(method_name, **kwargs):
         "update_reachability": lambda: update_reachability(
             dni_client,
             sa_blob_client,
-            kwargs["cn_container_name"],
-            kwargs["reach_blob_name"],
+            "cloudnode-container",
+            "reachability.json",
             context.get("client_id"),
             context.get("cn_id"),
         ),
@@ -118,9 +117,9 @@ def main(method_name, **kwargs):
             topo_id=create_topology_vlan(
                 dni_client,
                 sa_blob_client,
-                kwargs["account_id"],
-                kwargs["cn_container_name"],
-                kwargs["vl_blob_name"],
+                account_id,
+                "cloudnode-container",
+                "vlan.json",
                 context.get("client_id"),
                 context.get("cn_id"),
                 context.get("reserv_id"),
@@ -143,31 +142,5 @@ def main(method_name, **kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--method", required=True, help="Name of the method to execute")
-    parser.add_argument("--account_id", required=False)
-    parser.add_argument("--client_name", required=False)
-    parser.add_argument("--cn_container_name", required=False)
-    parser.add_argument("--cn_blob_name", required=False)
-    parser.add_argument("--loc_blob_name", required=False)
-    parser.add_argument("--reach_blob_name", required=False)
-    parser.add_argument("--vl_blob_name", required=False)
-    parser.add_argument("--client_id", required=False)
-    parser.add_argument("--cn_id", required=False)
-    parser.add_argument("--reserv_id", required=False)
-    parser.add_argument("--topo_id", required=False)
-
     args = parser.parse_args()
-
-    main(
-        method_name=args.method,
-        account_id=args.account_id,
-        client_name=args.client_name,
-        cn_container_name=args.cn_container_name,
-        cn_blob_name=args.cn_blob_name,
-        loc_blob_name=args.loc_blob_name,
-        reach_blob_name=args.reach_blob_name,
-        vl_blob_name=args.vl_blob_name,
-        client_id=args.client_id,
-        cn_id=args.cn_id,
-        reserv_id=args.reserv_id,
-        topo_id=args.topo_id,
-    )
+    main(method_name=args.method)
