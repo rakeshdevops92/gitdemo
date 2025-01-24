@@ -18,39 +18,6 @@ parameters:
       - "update_reachability"
       - "create_topology_vlan"
       - "delete_cloud_node"
-  - name: accountId
-    type: string
-    default: ""
-  - name: clientName
-    type: string
-    default: ""
-  - name: cnContainerName
-    type: string
-    default: ""
-  - name: cnBlobName
-    type: string
-    default: ""
-  - name: locBlobName
-    type: string
-    default: ""
-  - name: reachBlobName
-    type: string
-    default: ""
-  - name: vlBlobName
-    type: string
-    default: ""
-  - name: clientId
-    type: string
-    default: ""
-  - name: cnId
-    type: string
-    default: ""
-  - name: reservId
-    type: string
-    default: ""
-  - name: topoId
-    type: string
-    default: ""
 
 steps:
   - task: UsePythonVersion@0
@@ -72,14 +39,6 @@ steps:
 
   - script: |
       export PATH="$HOME/.local/bin:$PATH"
-      echo "Listing contents of Agent.TempDirectory before copy:"
-      ls $(Agent.TempDirectory)
-      echo "Listing contents of code/dni directory after copy:"
-      ls ./code/dni
-      cd ./code/dni
-      echo "Current working directory:"
-      pwd
-
       export tenant_id=${{ variables.tenant_id }}
       export app_id=${{ variables.app_id }}
       export passwd=${{ variables.passwd }}
@@ -87,24 +46,5 @@ steps:
       export rm_url=${{ variables.rm_url }}
       export sa_connect_str=${{ variables.sa_connect_str }}
 
-      echo "Exported environment variables:"
-      echo "Tenant ID: $tenant_id"
-      echo "App ID: $app_id"
-      echo "Password: [hidden]"
-      echo "Account ID: $account_id"
-      echo "RM URL: $rm_url"
-      echo "SA Connect String: [hidden]"
-
-      /usr/bin/python3 dni_client_demo.py --method ${{ parameters.methodName }} \
-                                         --account_id "${{ parameters.accountId }}" \
-                                         --client_name "${{ parameters.clientName }}" \
-                                         --cn_container_name "${{ parameters.cnContainerName }}" \
-                                         --cn_blob_name "${{ parameters.cnBlobName }}" \
-                                         --loc_blob_name "${{ parameters.locBlobName }}" \
-                                         --reach_blob_name "${{ parameters.reachBlobName }}" \
-                                         --vl_blob_name "${{ parameters.vlBlobName }}" \
-                                         --client_id "${{ parameters.clientId }}" \
-                                         --cn_id "${{ parameters.cnId }}" \
-                                         --reserv_id "${{ parameters.reservId }}" \
-                                         --topo_id "${{ parameters.topoId }}"
-    displayName: 'Export Environment Variables and Run Python Script'
+      python dni_client_demo.py --method ${{ parameters.methodName }}
+    displayName: 'Run Python Script with Selected Method'
