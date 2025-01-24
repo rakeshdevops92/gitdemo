@@ -1,36 +1,112 @@
+trigger:
+- main  # Adjust the branch name as needed
+
+parameters:
+  - name: methodName
+    displayName: "Method to Execute"
+    type: string
+    default: "create_cloud_node" 
+    values: 
+      - "get_staging_client"
+      - "get_bandwidth_reservation"
+      - "list_network_assets"
+      - "create_cloud_node"
+      - "assign_location"
+      - "update_reachability"
+      - "create_topology_vlan"
+      - "delete_cloud_node"
+
+  - name: accountId
+    displayName: "Account ID"
+    type: string
+    default: ""
+
+  - name: clientName
+    displayName: "Client Name"
+    type: string
+    default: ""
+
+  - name: serviceProviderName
+    displayName: "Service Provider Name"
+    type: string
+    default: ""
+
+  - name: containerName
+    displayName: "Container Name"
+    type: string
+    default: ""
+
+  - name: cnContainerName
+    displayName: "Cloud Node Container Name"
+    type: string
+    default: ""
+
+  - name: cnBlobName
+    displayName: "Cloud Node Blob Name"
+    type: string
+    default: ""
+
+  - name: locBlobName
+    displayName: "Location Blob Name"
+    type: string
+    default: ""
+
+  - name: reachBlobName
+    displayName: "Reachability Blob Name"
+    type: string
+    default: ""
+
+  - name: vlBlobName
+    displayName: "VLAN Blob Name"
+    type: string
+    default: ""
+
+  - name: clientId
+    displayName: "Client ID"
+    type: string
+    default: ""
+
+  - name: cnId
+    displayName: "Cloud Node ID"
+    type: string
+    default: ""
+
+  - name: reservId
+    displayName: "Reservation ID"
+    type: string
+    default: ""
+
+  - name: topoId
+    displayName: "Topology ID"
+    type: string
+    default: ""
+
+pool:
+  vmImage: 'ubuntu-latest'
+
 steps:
-- task: PowerShell@2
-  displayName: "Update Version in .csproj Files"
+- task: UsePythonVersion@0
   inputs:
-    targetType: 'inline'
-    script: |
-      $inputVersion = "$(inputVersion)"
-      
-      $filePaths = @(
-          "$(Build.SourcesDirectory)\assemblyversion\HP.HPX.csproj",
-          "$(Build.SourcesDirectory)\assemblyversion\DesktopExtension.csproj"
-      )
+    versionSpec: '3.x'
+    addToPath: true
 
-      function Update-VersionInCsproj {
-          param (
-              [string]$filePath,
-              [string]$version
-          )
-          
-          $content = Get-Content $filePath
-          
-          $content = $content -replace '(?<=<PackageReference Include="HP.PenControl" Version=")[^"]+', $version
-          $content = $content -replace '(?<=<Content Include="\.\.\\packages\\HP\.PenControl\\)[^\\]+', $version
-          
-          Set-Content -Path $filePath -Value $content -Encoding UTF8
-          
-          Write-Host "Updated version to $version in $filePath"
-      }
+- script: |
+    echo "Installing dependencies..."
+    pip install -r requirements.txt
 
-      foreach ($file in $filePaths) {
-          if (Test-Path $file) {
-              Update-VersionInCsproj -filePath $file -version $inputVersion
-          } else {
-              Write-Host "File not found: $file"
-          }
-      }
+    echo "Executing Python script..."
+    python dni_client_demo.py --method ${{ parameters.methodName }} \
+                              --account_id "${{ parameters.accountId }}" \
+                              --client_name "${{ parameters.clientName }}" \
+                              --service_provider_name "${{ parameters.serviceProviderName }}" \
+                              --container_name "${{ parameters.containerName }}" \
+                              --cn_container_name "${{ parameters.cnContainerName }}" \
+                              --cn_blob_name "${{ parameters.cnBlobName }}" \
+                              --loc_blob_name "${{ parameters.locBlobName }}" \
+                              --reach_blob_name "${{ parameters.reachBlobName }}" \
+                              --vl_blob_name "${{ parameters.vlBlobName }}" \
+                              --client_id "${{ parameters.clientId }}" \
+                              --cn_id "${{ parameters.cnId }}" \
+                              --reserv_id "${{ parameters.reservId }}" \
+                              --topo_id "${{ parameters.topoId }}"
+  displayName: "Run Python Script"
