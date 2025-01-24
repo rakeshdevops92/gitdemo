@@ -80,6 +80,21 @@ steps:
       echo "Current working directory:"
       pwd
 
+      export tenant_id=${{ variables.tenant_id }}
+      export app_id=${{ variables.app_id }}
+      export passwd=${{ variables.passwd }}
+      export account_id=${{ variables.account_id }}
+      export rm_url=${{ variables.rm_url }}
+      export sa_connect_str=${{ variables.sa_connect_str }}
+
+      echo "Exported environment variables:"
+      echo "Tenant ID: $tenant_id"
+      echo "App ID: $app_id"
+      echo "Password: [hidden]"
+      echo "Account ID: $account_id"
+      echo "RM URL: $rm_url"
+      echo "SA Connect String: [hidden]"
+
       /usr/bin/python3 dni_client_demo.py --method ${{ parameters.methodName }} \
                                          --account_id "${{ parameters.accountId }}" \
                                          --client_name "${{ parameters.clientName }}" \
@@ -92,4 +107,4 @@ steps:
                                          --cn_id "${{ parameters.cnId }}" \
                                          --reserv_id "${{ parameters.reservId }}" \
                                          --topo_id "${{ parameters.topoId }}"
-    displayName: 'Run Python Script with Selected Method'
+    displayName: 'Export Environment Variables and Run Python Script'
