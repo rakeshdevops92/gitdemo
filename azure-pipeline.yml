@@ -1,112 +1,95 @@
 trigger:
-- main  # Adjust the branch name as needed
+  - main
+
+pool:
+  name: JVS-NR-eastus2-pprdce01-ado-agentpool-01
+
+variables:
+  - group: dniprd
 
 parameters:
   - name: methodName
-    displayName: "Method to Execute"
     type: string
-    default: "create_cloud_node" 
-    values: 
+    default: "create_cloud_node"
+    values:
       - "get_staging_client"
-      - "get_bandwidth_reservation"
-      - "list_network_assets"
       - "create_cloud_node"
       - "assign_location"
       - "update_reachability"
       - "create_topology_vlan"
       - "delete_cloud_node"
-
   - name: accountId
-    displayName: "Account ID"
     type: string
     default: ""
-
   - name: clientName
-    displayName: "Client Name"
     type: string
     default: ""
-
-  - name: serviceProviderName
-    displayName: "Service Provider Name"
-    type: string
-    default: ""
-
-  - name: containerName
-    displayName: "Container Name"
-    type: string
-    default: ""
-
   - name: cnContainerName
-    displayName: "Cloud Node Container Name"
     type: string
     default: ""
-
   - name: cnBlobName
-    displayName: "Cloud Node Blob Name"
     type: string
     default: ""
-
   - name: locBlobName
-    displayName: "Location Blob Name"
     type: string
     default: ""
-
   - name: reachBlobName
-    displayName: "Reachability Blob Name"
     type: string
     default: ""
-
   - name: vlBlobName
-    displayName: "VLAN Blob Name"
     type: string
     default: ""
-
   - name: clientId
-    displayName: "Client ID"
     type: string
     default: ""
-
   - name: cnId
-    displayName: "Cloud Node ID"
     type: string
     default: ""
-
   - name: reservId
-    displayName: "Reservation ID"
     type: string
     default: ""
-
   - name: topoId
-    displayName: "Topology ID"
     type: string
     default: ""
-
-pool:
-  vmImage: 'ubuntu-latest'
 
 steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.x'
-    addToPath: true
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10.12'
+      addToPath: true
 
-- script: |
-    echo "Installing dependencies..."
-    pip install -r requirements.txt
+  - script: |
+      curl -x http://proxy.conexus.svc.local:3128 https://dni-api-stg.npnd.gw.att.com > linkid.txt
+      cat linkid.txt
+    displayName: 'Process LinkID'
 
-    echo "Executing Python script..."
-    python dni_client_demo.py --method ${{ parameters.methodName }} \
-                              --account_id "${{ parameters.accountId }}" \
-                              --client_name "${{ parameters.clientName }}" \
-                              --service_provider_name "${{ parameters.serviceProviderName }}" \
-                              --container_name "${{ parameters.containerName }}" \
-                              --cn_container_name "${{ parameters.cnContainerName }}" \
-                              --cn_blob_name "${{ parameters.cnBlobName }}" \
-                              --loc_blob_name "${{ parameters.locBlobName }}" \
-                              --reach_blob_name "${{ parameters.reachBlobName }}" \
-                              --vl_blob_name "${{ parameters.vlBlobName }}" \
-                              --client_id "${{ parameters.clientId }}" \
-                              --cn_id "${{ parameters.cnId }}" \
-                              --reserv_id "${{ parameters.reservId }}" \
-                              --topo_id "${{ parameters.topoId }}"
-  displayName: "Run Python Script"
+  - script: |
+      python -m pip install --upgrade pip
+      pip install --force-reinstall --no-cache-dir cryptography
+      pip install -r code/dni/requirements.txt
+      export PATH="$HOME/.local/bin:$PATH"
+    displayName: 'Reinstall and Install Python Dependencies'
+
+  - script: |
+      export PATH="$HOME/.local/bin:$PATH"
+      echo "Listing contents of Agent.TempDirectory before copy:"
+      ls $(Agent.TempDirectory)
+      echo "Listing contents of code/dni directory after copy:"
+      ls ./code/dni
+      cd ./code/dni
+      echo "Current working directory:"
+      pwd
+
+      /usr/bin/python3 dni_client_demo.py --method ${{ parameters.methodName }} \
+                                         --account_id "${{ parameters.accountId }}" \
+                                         --client_name "${{ parameters.clientName }}" \
+                                         --cn_container_name "${{ parameters.cnContainerName }}" \
+                                         --cn_blob_name "${{ parameters.cnBlobName }}" \
+                                         --loc_blob_name "${{ parameters.locBlobName }}" \
+                                         --reach_blob_name "${{ parameters.reachBlobName }}" \
+                                         --vl_blob_name "${{ parameters.vlBlobName }}" \
+                                         --client_id "${{ parameters.clientId }}" \
+                                         --cn_id "${{ parameters.cnId }}" \
+                                         --reserv_id "${{ parameters.reservId }}" \
+                                         --topo_id "${{ parameters.topoId }}"
+    displayName: 'Run Python Script with Selected Method'
