@@ -5,7 +5,7 @@ pool:
   name: JVS-NR-eastus2-pprdce01-ado-agentpool-01
 
 variables:
-  - group: dniprd
+  - group: dniprd  # Reference to your variable group
 
 parameters:
   - name: methodName
@@ -26,25 +26,42 @@ steps:
       addToPath: true
 
   - script: |
-      curl -x http://proxy.conexus.svc.local:3128 https://dni-api-stg.npnd.gw.att.com > linkid.txt
-      cat linkid.txt
-    displayName: 'Process LinkID'
-
-  - script: |
+      echo "Creating virtual environment..."
+      python -m venv venv
+      echo "Activating virtual environment..."
+      source venv/bin/activate
+      echo "Upgrading pip..."
       python -m pip install --upgrade pip
-      pip install --force-reinstall --no-cache-dir cryptography
-      pip install -r code/dni/requirements.txt
-      export PATH="$HOME/.local/bin:$PATH"
-    displayName: 'Reinstall and Install Python Dependencies'
+      echo "Installing dependencies from requirements.txt..."
+      pip install --no-cache-dir -r code/dni/requirements.txt
+      echo "Virtual environment setup complete."
+    displayName: 'Set Up Virtual Environment and Install Dependencies'
 
   - script: |
-      export PATH="$HOME/.local/bin:$PATH"
-      export tenant_id=${{ variables.tenant_id }}
-      export app_id=${{ variables.app_id }}
-      export passwd=${{ variables.passwd }}
-      export account_id=${{ variables.account_id }}
-      export rm_url=${{ variables.rm_url }}
-      export sa_connect_str=${{ variables.sa_connect_str }}
+      echo "Activating virtual environment..."
+      source venv/bin/activate
+      echo "Installed Python Packages:"
+      pip list
+    displayName: 'Verify Installed Python Packages in Virtual Environment'
 
-      python dni_client_demo.py --method ${{ parameters.methodName }}
+  - script: |
+      echo "Activating virtual environment..."
+      source venv/bin/activate
+
+      export tenant_id="${{ variables.tenant_id }}"
+      export app_id="${{ variables.app_id }}"
+      export passwd="${{ variables.passwd }}"
+      export account_id="${{ variables.account_id }}"
+      export rm_url="${{ variables.rm_url }}"
+      export sa_connect_str="${{ variables.sa_connect_str }}"
+
+      echo "Environment variables exported successfully:"
+      echo "Tenant ID: $tenant_id"
+      echo "App ID: $app_id"
+      echo "Account ID: $account_id"
+      echo "RM URL: $rm_url"
+      echo "SA Connect String: [hidden]"
+
+      echo "Executing the selected method..."
+      venv/bin/python dni_client_demo.py --method ${{ parameters.methodName }}
     displayName: 'Run Python Script with Selected Method'
