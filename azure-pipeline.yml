@@ -1,67 +1,27 @@
-trigger:
-  - main
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      $filePath = "$(Build.SourcesDirectory)\path\to\your\HP.PenControl.csproj"
 
-pool:
-  name: JVS-NR-eastus2-pprdce01-ado-agentpool-01
+      $newVersion = "1.0.4.60"
+      $newAssemblyVersion = "1.0.4.60"
+      $newFileVersion = "1.0.4.60"
 
-variables:
-  - group: dniprd  # Reference to your variable group
+      [xml]$xml = Get-Content -Path $filePath
 
-parameters:
-  - name: methodName
-    type: string
-    default: "create_cloud_node"
-    values:
-      - "get_staging_client"
-      - "create_cloud_node"
-      - "assign_location"
-      - "update_reachability"
-      - "create_topology_vlan"
-      - "delete_cloud_node"
+      $hpPenControlGroup = $xml.Project.PropertyGroup | Where-Object { $_.PackageId -eq "HP.PenControl" }
 
-steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.10.12'
-      addToPath: true
+      if ($hpPenControlGroup) {
+          # Update the version, assembly version, and file version
+          $hpPenControlGroup.Version = $newVersion
+          $hpPenControlGroup.AssemblyVersion = $newAssemblyVersion
+          $hpPenControlGroup.FileVersion = $newFileVersion
 
-  - script: |
-      echo "Creating virtual environment..."
-      python -m venv venv
-      echo "Activating virtual environment..."
-      source venv/bin/activate
-      echo "Upgrading pip..."
-      python -m pip install --upgrade pip
-      echo "Installing dependencies from requirements.txt..."
-      pip install --no-cache-dir -r code/dni/requirements.txt
-      echo "Virtual environment setup complete."
-    displayName: 'Set Up Virtual Environment and Install Dependencies'
+          $xml.Save($filePath)
 
-  - script: |
-      echo "Activating virtual environment..."
-      source venv/bin/activate
-      echo "Installed Python Packages:"
-      pip list
-    displayName: 'Verify Installed Python Packages in Virtual Environment'
-
-  - script: |
-      echo "Activating virtual environment..."
-      source venv/bin/activate
-
-      export tenant_id="${{ variables.tenant_id }}"
-      export app_id="${{ variables.app_id }}"
-      export passwd="${{ variables.passwd }}"
-      export account_id="${{ variables.account_id }}"
-      export rm_url="${{ variables.rm_url }}"
-      export sa_connect_str="${{ variables.sa_connect_str }}"
-
-      echo "Environment variables exported successfully:"
-      echo "Tenant ID: $tenant_id"
-      echo "App ID: $app_id"
-      echo "Account ID: $account_id"
-      echo "RM URL: $rm_url"
-      echo "SA Connect String: [hidden]"
-
-      echo "Executing the selected method..."
-      venv/bin/python dni_client_demo.py --method ${{ parameters.methodName }}
-    displayName: 'Run Python Script with Selected Method'
+          Write-Host "Version, AssemblyVersion, and FileVersion updated successfully for HP.PenControl."
+      } else {
+          Write-Host "HP.PenControl PropertyGroup not found in the .csproj file."
+      }
+    pwsh: true
