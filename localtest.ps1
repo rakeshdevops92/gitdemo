@@ -1,28 +1,21 @@
-# Input Parameters
-$inputVersion = "2.0.2.33" # Update this to the desired version
-$filePaths = @("C:\Work\Support\Subhash\gitdemo\assemblyversion\HP.HPX.csproj", "C:\Work\Support\Subhash\gitdemo\assemblyversion\DesktopExtension.csproj") # Update with the paths to your .csproj files
+$filePath = "path\to\your\file.xml"
 
-# Function to update version in the file
-function Update-VersionInCsproj {
-    param (
-        [string]$filePath,
-        [string]$version
-    )
-    
-    # Read the file content
-    $content = Get-Content $filePath
-    
-    # Update PackageReference lines
-    $content = $content -replace '(?<=<PackageReference Include="HP.PenControl" Version=")[^"]+', $version
-    $content = $content -replace '(?<=<Content Include="\.\.\\packages\\HP\.PenControl\\)[^\\]+', $version
-    
-    # Write the updated content back to the file
-    Set-Content -Path $filePath -Value $content -Encoding UTF8
-    
-    Write-Host "Updated version to $version in $filePath"
-}
+$newVersion = "1.0.4.60"
+$newAssemblyVersion = "1.0.4.60"
+$newFileVersion = "1.0.4.60"
 
-# Iterate over the files and update the version
-foreach ($file in $filePaths) {
-    Update-VersionInCsproj -filePath $file -version $inputVersion
+[xml]$xml = Get-Content -Path $filePath
+
+$hpPenControlGroup = $xml.Project.PropertyGroup | Where-Object { $_.PackageId -eq "HP.PenControl" }
+
+if ($hpPenControlGroup) {
+    $hpPenControlGroup.Version = $newVersion
+    $hpPenControlGroup.AssemblyVersion = $newAssemblyVersion
+    $hpPenControlGroup.FileVersion = $newFileVersion
+
+    $xml.Save($filePath)
+
+    Write-Host "Version, AssemblyVersion, and FileVersion updated successfully for HP.PenControl."
+} else {
+    Write-Host "HP.PenControl PropertyGroup not found in the XML file."
 }
